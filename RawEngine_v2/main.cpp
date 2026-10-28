@@ -10,7 +10,7 @@
 #include "core/mesh.h"
 #include "core/assimpLoader.h"
 #include "core/texture.h"
-
+#include "core/camera.h"
 //#define MAC_CLION
 #define VSTUDIO
 
@@ -31,44 +31,59 @@
 int g_width = 800;
 int g_height = 600;
 
+
+
+core::camera camera;
+
 glm::vec3 moveDir = glm::vec3(0, 0, 0);
 glm::vec3 rotateDir = glm::vec3(0, 0, 0);
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
-glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+float FOV = 45.0f;
+
+float sprintSpeed = 0.0f;
+
+bool firstMouse = true;
+float lastX =  800.0f / 2.0;
+float lastY =  600.0 / 2.0;
+
+glm::vec2 mouseOffset;
 
 void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
 
-    cameraDirection = glm::normalize(cameraPos - cameraTarget);
-    cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-    cameraUp = glm::cross(cameraDirection, cameraRight);
+    glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 forward = glm::vec3(0.0f, 0.0f, 1.0f);
 
     glm::vec3 inputDir = glm::vec3(0, 0, 0);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        inputDir += -glm::normalize(cameraDirection);
+        inputDir += forward;
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        inputDir += -cameraRight;
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        inputDir += glm::normalize(cameraDirection);
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        inputDir += cameraRight;
-    }
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-        inputDir += up;
+        inputDir += right;
     }
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-        inputDir += -up;
+        inputDir += up;
     }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        inputDir -= forward;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        inputDir -= right;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        inputDir -= up;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        sprintSpeed = 0.08f;
+    }
+    else {
+        sprintSpeed = 0.0f;
+    }
+
 
 
     if (inputDir != glm::vec3(0, 0, 0)) {
@@ -76,25 +91,73 @@ void processInput(GLFWwindow *window) {
     }
     moveDir = inputDir;
 
+    glm::vec3 rotDir = glm::vec3(0, 0, 0);
 
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_CAPTURED);
+        if (mouseOffset.x > 0.1f || mouseOffset.x < -0.1f) rotDir.x += mouseOffset.x;
+        if (mouseOffset.y > 0.1f || mouseOffset.y < -0.1f) rotDir.y += mouseOffset.y;
+
+    }
+    else {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-
-rotateDir = glm::vec3(0,0,0);
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-        rotateDir += glm::vec3(-1.0f,0.0f,0.0f);
+        rotDir -= right;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        rotateDir += glm::vec3(1.0f,0.0f,0.0f);
+        rotDir += right;
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        rotateDir += glm::vec3(0.0f,1.0f,0.0f);
+        rotDir += up;
     }
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        rotateDir += glm::vec3(0.0f,-1.0f,0.0f);
+        rotDir -= up;
     }
 
+    if (rotDir != glm::vec3(0, 0, 0)) {
+        ///rotDir = glm::normalize(rotDir);
+    }
+
+    rotateDir += rotDir;
+
+    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+        FOV += 1.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+        FOV -= 1.0f;
+    }
+    FOV = std::clamp(FOV, 1.0f, 150.0f);
+
+}
+
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+
+    mouseOffset.x = lastX - xpos;
+    mouseOffset.y = ypos - lastY; // reversed since y-coordinates go from bottom to top
+    lastX = xpos;
+    lastY = ypos;
+
+    printf("x = %f\n", mouseOffset.x);
+    printf("y = %f\n", mouseOffset.y);
+
+    float sensitivity = 0.1f; // change this value to your liking
+    mouseOffset.x *= sensitivity;
+    mouseOffset.y *= sensitivity;
 }
 
 void framebufferSizeCallback(GLFWwindow *window,
@@ -132,7 +195,6 @@ GLuint generateShader(const std::string &shaderPath, GLuint shaderType) {
     return shader;
 }
 
-glm::vec3 currentDir = glm::vec3(0, 0, 1);
 
 int main() {
     glfwInit();
@@ -151,6 +213,7 @@ int main() {
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
@@ -219,8 +282,8 @@ int main() {
 
 
     //VP
-    glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
+    glm::mat4 view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
+    glm::mat4 projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
     GLint mvpMatrixUniform = glGetUniformLocation(modelShaderProgram, "mvpMatrix");
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
@@ -230,6 +293,10 @@ int main() {
     double finishFrameTime = 0.0;
     float deltaTime = 0.0f;
     float rotationStrength = 100.0f;
+
+    //cameraTargetTransform2.SetRotation(glm::vec3(0.0f,1.0f,0.0f),90.0f);
+
+
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -243,29 +310,16 @@ int main() {
         processInput(window);
         suzanne.rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(rotationStrength) * static_cast<float>(deltaTime));
 
+        //cameraTargetTransform = glm::translate(cameraPos);
 
-        float speed = 0.01f;
-
-        float range = 1.0f;
-
-        glm::vec3 targetOffset = glm::vec3(0.0f,0.0f,1.0f);
-        float offsetMaybe = 1;
-        glm::vec3 previousCameraPos = cameraPos;
-
-        cameraTarget = cameraTarget - cameraPos;
-        cameraPos = glm::vec3(0,0,0);
-
-        cameraTarget = glm::rotate(cameraTarget, rotateDir.x * 0.05f, glm::vec3(0.0f, 1.0f, 0.0f));
-        cameraTarget = glm::rotate(cameraTarget, rotateDir.y * 0.05f, glm::vec3(1.0f, 0.0f, 0.0f));
-
-        cameraPos = previousCameraPos;
-        cameraTarget = cameraTarget + cameraPos;
+        float speed = 0.05f + sprintSpeed;
 
 
-        cameraPos = cameraPos + moveDir * speed;
-        //cameraTarget = cameraTarget + moveDir * speed;
+        camera.RotateCamera(rotateDir);
+        camera.MoveCamera(moveDir * speed);
 
-        glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+        view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
+        projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
         glUseProgram(textureShaderProgram);
         glUniformMatrix4fv(textureModelUniform, 1, GL_FALSE, glm::value_ptr(projection * view * quadModel.getModelMatrix()));
