@@ -33,8 +33,6 @@
 int g_width = 800;
 int g_height = 600;
 
-
-
 core::camera camera;
 
 glm::vec3 moveDir = glm::vec3(0, 0, 0);
@@ -310,11 +308,8 @@ int main() {
     quadModel.translate(glm::vec3(0,0,-5));
     quadModel.scale(glm::vec3(5, 5, 1));
 
-    /*core::Mesh bufferQuad = core::Mesh::generateQuad();
-    core::Model bufferQuadModel({quad});
-    bufferQuadModel.rotate(glm::vec3(0, 1.0f, 0),180);
-    bufferQuadModel.translate(glm::vec3(0,0,-5));
-    bufferQuadModel.scale(glm::vec3(5, 5, 1));*/
+    core::Mesh bufferQuad = core::Mesh::generateQuad();
+    core::Model bufferQuadModel({bufferQuad});
 
     core::Model suzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
     core::Texture cmgtGatoTexture("textures/CMGaTo_crop.png");
@@ -324,8 +319,7 @@ int main() {
                  clearColor.g, clearColor.b, clearColor.a);
 
 
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-        // positions   // texCoords
+    float bufferQuadVertices[] = {
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
          1.0f, -1.0f,  1.0f, 0.0f,
@@ -335,17 +329,16 @@ int main() {
          1.0f,  1.0f,  1.0f, 1.0f
     };
 
-    unsigned int quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    unsigned int bufferQuadVAO, bufferQuadVBO;
+    glGenVertexArrays(1, &bufferQuadVAO);
+    glGenBuffers(1, &bufferQuadVBO);
+    glBindVertexArray(bufferQuadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, bufferQuadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bufferQuadVertices), &bufferQuadVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
 
 
     glm::mat4 view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
@@ -354,29 +347,29 @@ int main() {
     GLint mvpMatrixUniform = glGetUniformLocation(modelShaderProgram, "mvpMatrix");
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
     GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
-    GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
 
-    //texture uniform location
-    //GLint frameBufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
+    GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
+    GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
+    GLint bufferInvert = glGetUniformLocation(frameBufferProgram, "invert");
 
     unsigned int framebuffer;
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    // create a color attachment texture
-    unsigned int textureColorbuffer;
-    glGenTextures(1, &textureColorbuffer);
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+    unsigned int bufferTexture;
+    glGenTextures(1, &bufferTexture);
+    glBindTexture(GL_TEXTURE_2D, bufferTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bufferTexture, 0);
+
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600); // use a single renderbuffer object for both a depth AND stencil buffer.
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_width, g_height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("uh oh");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -387,14 +380,24 @@ int main() {
     float deltaTime = 0.0f;
     float rotationStrength = 100.0f;
 
+    //PostProcessing values
+    glm::vec3 colors = glm::vec3(0.0f,0.0f,0.0f);
+    bool canInvert = false;
 
     while (!glfwWindowShouldClose(window)) {
 
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
+
         ImGui::NewFrame();
-        ImGui::Begin("Raw Engine v2");
+        ImGui::Begin("Post Processing Settings");
+
+        ImGui::SliderFloat3("colors", &colors.x, 0.0f, 1.0f);
+        ImGui::Checkbox("InvertColors", &canInvert);
+
         ImGui::Text("Hello :)");
+
         ImGui::End();
 
         processInput(window);
@@ -402,7 +405,6 @@ int main() {
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
-        // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -417,6 +419,7 @@ int main() {
         view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
         projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
+        //CatTextureQuad----------------------------------------------------------------
         glUseProgram(textureShaderProgram);
         glUniformMatrix4fv(textureModelUniform, 1, GL_FALSE, glm::value_ptr(projection * view * quadModel.getModelMatrix()));
         glActiveTexture(GL_TEXTURE0);
@@ -426,28 +429,40 @@ int main() {
         glBindVertexArray(0);
         glActiveTexture(GL_TEXTURE0);
 
+        //SuzaneModel----------------------------------------------------------------
         glUseProgram(modelShaderProgram);
         glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * suzanne.getModelMatrix()));
         suzanne.render();
         glBindVertexArray(0);
 
 
+        //FrameBuffer----------------------------------------------------------------
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+
+        //Maybe try and turn this into a better looking program
+        glUseProgram(frameBufferProgram);
+        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.0f);
+        glUniform1i(bufferInvert, canInvert);
+        glBindVertexArray(bufferQuadVAO); //Can't use the quad mesh provided since it doesnt give texcoords in the attribute pointer
+        glBindTexture(GL_TEXTURE_2D, bufferTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+        /*glUseProgram(frameBufferProgram);
 
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(bufferTextureUniform, 0);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        bufferQuad.render();
+        glBindVertexArray(0);
+        glActiveTexture(GL_TEXTURE0);*/
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glUseProgram(frameBufferProgram);
-        glBindVertexArray(quadVAO);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
-        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -460,11 +475,11 @@ int main() {
     glDeleteProgram(modelShaderProgram);
 
     glDeleteProgram(frameBufferProgram);
-    glDeleteFramebuffers(1, &textureColorbuffer);
+    glDeleteFramebuffers(1, &bufferTexture);
     glDeleteRenderbuffers(1, &rbo);
 
-    glDeleteVertexArrays(1, &quadVAO);
-    glDeleteBuffers(1, &quadVBO);
+    glDeleteVertexArrays(1, &bufferQuadVAO);
+    glDeleteBuffers(1, &bufferQuadVBO);
 
 
     ImGui_ImplOpenGL3_Shutdown();
