@@ -43,10 +43,9 @@ float FOV = 45.0f;
 float sprintSpeed = 0.0f;
 
 bool firstMouse = true;
-float lastX =  800.0f / 2.0;
-float lastY =  600.0 / 2.0;
+bool isLookingAround = false;
+bool lockInCenter = false;
 
-glm::vec2 mouseOffset;
 
 void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -95,14 +94,13 @@ void processInput(GLFWwindow *window) {
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
     {
+        isLookingAround = true;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_CAPTURED);
-        if (mouseOffset.x > 0.1f || mouseOffset.x < -0.1f) rotDir.x += mouseOffset.x;
-        if (mouseOffset.y > 0.1f || mouseOffset.y < -0.1f) rotDir.y += mouseOffset.y;
-
     }
-    else {
+    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        firstMouse = true;
+        isLookingAround = false;
     }
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
@@ -118,10 +116,6 @@ void processInput(GLFWwindow *window) {
         rotDir -= up;
     }
 
-    if (rotDir != glm::vec3(0, 0, 0)) {
-        ///rotDir = glm::normalize(rotDir);
-    }
-
     rotateDir += rotDir;
 
     if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
@@ -134,30 +128,52 @@ void processInput(GLFWwindow *window) {
 
 }
 
+float centerX;
+float centerY;
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
+    if (isLookingAround) {
 
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
+        float xpos = static_cast<float>(xposIn);
+        float ypos = static_cast<float>(yposIn);
+
+        if (firstMouse)
+        {
+            if (lockInCenter)
+            {
+                int windowHeight;
+                int windowWidth;
+
+                glfwGetWindowSize( window , &windowWidth, &windowHeight );
+
+                centerX = windowWidth / 2;
+                centerY = windowHeight / 2;
+                firstMouse = false;
+            }
+            else {
+                centerX = xpos;
+                centerY = ypos;
+                firstMouse = false;
+            }
+        }
+
+        glm::vec2 mouseOffset;
+
+        mouseOffset.x = centerX - xpos;
+        mouseOffset.y = ypos - centerY;
+
+        printf("x = %f\n", mouseOffset.x);
+        printf("y = %f\n", mouseOffset.y);
+
+        float sensitivity = 0.1f;
+        mouseOffset.x *= sensitivity;
+        mouseOffset.y *= sensitivity;
+
+        rotateDir += glm::vec3(mouseOffset, 0.0f);
+
+
+        glfwSetCursorPos(window,centerX , centerY);
     }
-
-
-    mouseOffset.x = lastX - xpos;
-    mouseOffset.y = ypos - lastY; // reversed since y-coordinates go from bottom to top
-    lastX = xpos;
-    lastY = ypos;
-
-    printf("x = %f\n", mouseOffset.x);
-    printf("y = %f\n", mouseOffset.y);
-
-    float sensitivity = 0.1f; // change this value to your liking
-    mouseOffset.x *= sensitivity;
-    mouseOffset.y *= sensitivity;
 }
 
 void framebufferSizeCallback(GLFWwindow *window,
