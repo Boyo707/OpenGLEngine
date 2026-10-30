@@ -254,6 +254,7 @@ int main() {
     const GLuint modelVertexShader = generateShader("shaders/modelVertex.vs", GL_VERTEX_SHADER);
     const GLuint fragmentShader = generateShader("shaders/fragment.fs", GL_FRAGMENT_SHADER);
     const GLuint textureShader = generateShader("shaders/texture.fs", GL_FRAGMENT_SHADER);
+    const GLuint lightFragmentShader = generateShader("shaders/lightingFragment.fs", GL_FRAGMENT_SHADER);
 
     const GLuint bufferVertexShader = generateShader("shaders/bufferVertex.vs", GL_VERTEX_SHADER);
     const GLuint bufferFragmentShader = generateShader("shaders/bufferFragment.fs", GL_FRAGMENT_SHADER);
@@ -271,6 +272,17 @@ int main() {
         glGetProgramInfoLog(modelShaderProgram, 512, NULL, infoLog);
         printf("Error! Making Shader Program: %s\n", infoLog);
     }
+
+    const unsigned int lightModelShaderProgram = glCreateProgram();
+    glAttachShader(lightModelShaderProgram, modelVertexShader);
+    glAttachShader(lightModelShaderProgram, lightFragmentShader);
+    glLinkProgram(lightModelShaderProgram);
+    glGetProgramiv(lightModelShaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(lightModelShaderProgram, 512, NULL, infoLog);
+        printf("Error! Making Shader Program: %s\n", infoLog);
+    }
+
     const unsigned int textureShaderProgram = glCreateProgram();
     glAttachShader(textureShaderProgram, modelVertexShader);
     glAttachShader(textureShaderProgram, textureShader);
@@ -299,6 +311,7 @@ int main() {
     glDeleteShader(modelVertexShader);
     glDeleteShader(fragmentShader);
     glDeleteShader(textureShader);
+    glDeleteShader(lightFragmentShader);
 
     glDeleteShader(bufferFragmentShader);
     glDeleteShader(bufferVertexShader);
@@ -312,6 +325,11 @@ int main() {
     core::Model bufferQuadModel({bufferQuad});
 
     core::Model suzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
+    suzanne.translate(glm::vec3(0, 0, -2));
+    core::Model otherSuzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
+    otherSuzanne.translate(glm::vec3(0,0,0));
+    //quadModel.scale(glm::vec3(5, 5, 1));
+
     core::Texture cmgtGatoTexture("textures/CMGaTo_crop.png");
 
     glm::vec4 clearColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -345,8 +363,20 @@ int main() {
     glm::mat4 projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
     GLint mvpMatrixUniform = glGetUniformLocation(modelShaderProgram, "mvpMatrix");
+    GLint modelMatrixUniform = glGetUniformLocation(modelShaderProgram, "modelMatrix");
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
     GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
+
+
+    GLint lightPosUniform = glGetUniformLocation(lightModelShaderProgram, "lightPosition");
+    GLint lightColorUniform = glGetUniformLocation(lightModelShaderProgram, "lightColor");
+    GLint cameraPosUniform = glGetUniformLocation(lightModelShaderProgram, "cameraPos");
+    GLint objectColorUniform = glGetUniformLocation(lightModelShaderProgram, "objectColor");
+    GLint ambientIntensityUniform = glGetUniformLocation(lightModelShaderProgram, "ambientIntensity");
+    GLint specularColorUniform = glGetUniformLocation(lightModelShaderProgram, "specularColor");
+    GLint specularIntensityUniform = glGetUniformLocation(lightModelShaderProgram, "specularIntensity");
+    GLint specularPowerUniform = glGetUniformLocation(lightModelShaderProgram, "specularPower");
+    GLint attenuationUniform = glGetUniformLocation(lightModelShaderProgram, "quadraticAttenuation");
 
     GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
     GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
@@ -384,6 +414,15 @@ int main() {
     glm::vec3 colors = glm::vec3(0.0f,0.0f,0.0f);
     bool canInvert = false;
 
+    glm::vec3 lightPos = glm::vec3(0.0f,0.0f,-5.0f);
+    glm::vec3 lightColor = glm::vec3(1.0f,1.0f,1.0f);
+    glm::vec3 objectColor = glm::vec3(1.0f,1.0f,1.0f);
+    glm::vec3 specularColor = glm::vec3(1.0f,1.0f,1.0f);
+    float ambIntensity = 0.2f;
+    float specularIntensity = 1.0f;
+    float specularPower = 3.0f;
+    float attenuation = 1.0f;
+
     while (!glfwWindowShouldClose(window)) {
 
 
@@ -400,6 +439,28 @@ int main() {
 
         ImGui::End();
 
+        ImGui::Begin("Lighting Settings");
+        ImGui::Text("BaseColors");
+        ImGui::SliderFloat3("Light Position", &lightPos.x, -2.0f, 2.0f);
+        ImGui::ColorEdit3("Light Color", &lightColor.x);
+        ImGui::ColorEdit3("Object Color", &objectColor.x);
+        ImGui::Text("Ambient");
+        ImGui::SliderFloat("Ambient Intensity", &ambIntensity, 0.001f, 1.0f);
+
+        ImGui::Text("Specular");
+        ImGui::ColorEdit3("specularColor", &specularColor.x);
+        ImGui::SliderFloat("Specular Intensity", &specularIntensity, 0.001f, 1.0f);
+        ImGui::SliderFloat("Specular Power", &specularPower, 0.001f, 150.0f);
+
+        ImGui::Text("Attenuation");
+        ImGui::SliderFloat("Attenuation", &attenuation, 0.001f, 20.0f);
+
+
+        ImGui::End();
+        ImGui::EndFrame();
+
+
+
         processInput(window);
 
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -410,6 +471,7 @@ int main() {
 
 
         suzanne.rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(rotationStrength) * static_cast<float>(deltaTime));
+        otherSuzanne.rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(rotationStrength) * static_cast<float>(deltaTime));
 
         float speed = 0.05f + sprintSpeed;
 
@@ -435,6 +497,26 @@ int main() {
         suzanne.render();
         glBindVertexArray(0);
 
+        glm::vec3 cameraPos = camera.GetCameraPosition();
+        //LightingSuzaneModel
+        glUseProgram(lightModelShaderProgram);
+        glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * otherSuzanne.getModelMatrix()));
+        glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(otherSuzanne.getModelMatrix()));
+        glUniform3f(lightPosUniform, lightPos.x, lightPos.y, lightPos.z);
+        glUniform3f(cameraPosUniform, cameraPos.x, cameraPos.y, cameraPos.z);
+        glUniform3f(lightColorUniform, lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(objectColorUniform, objectColor.x, objectColor.y, objectColor.z);
+        glUniform1f(ambientIntensityUniform, ambIntensity);
+        glUniform3f(specularColorUniform, specularColor.x, specularColor.y, specularColor.z);
+        glUniform1f(specularIntensityUniform, specularIntensity);
+        glUniform1f(specularPowerUniform, specularPower);
+        glUniform1f(attenuationUniform, attenuation);
+
+
+
+        otherSuzanne.render();
+        glBindVertexArray(0);
+
 
         //FrameBuffer----------------------------------------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -443,9 +525,9 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
 
-        //Maybe try and turn this into a better looking program
+        //Maybe try and turn this into a better looking program (make use of the uniform location of texture)
         glUseProgram(frameBufferProgram);
-        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.0f);
+        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f);
         glUniform1i(bufferInvert, canInvert);
         glBindVertexArray(bufferQuadVAO); //Can't use the quad mesh provided since it doesnt give texcoords in the attribute pointer
         glBindTexture(GL_TEXTURE_2D, bufferTexture);
@@ -475,6 +557,7 @@ int main() {
     glDeleteProgram(modelShaderProgram);
 
     glDeleteProgram(frameBufferProgram);
+    glDeleteProgram(lightFragmentShader);
     glDeleteFramebuffers(1, &bufferTexture);
     glDeleteRenderbuffers(1, &rbo);
 
