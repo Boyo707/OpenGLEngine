@@ -7,38 +7,37 @@
 
 namespace core {
 
-    transform::transform() {
+    Transform::Transform() {
         transformMatrix = glm::mat4(1.0f);
 
         position = glm::vec3(0.0f,0.0f,0.0f);
         rotation = glm::vec3(0.0f,0.0f,0.0f);
+        scale = glm::vec3(1.0f,1.0f,1.0f);
     }
 
-    void transform::SetTransMatrix(glm::mat4 matrix) {
+    void Transform::SetTransMatrix(glm::mat4 matrix) {
         transformMatrix = matrix;
     }
 
-    glm::mat4 transform::GetTransMatrix() {
+    glm::mat4 Transform::GetTransMatrix() {
         return transformMatrix;
     }
 
-    void transform::SetPosition(glm::vec3 pPosition) {
+    void Transform::SetPosition(glm::vec3 pPosition) {
         position = pPosition;
         ApplyChanges();
     }
 
-    glm::vec3 transform::GetPosition() {
+    glm::vec3 Transform::GetPosition() {
         return position;
     }
 
-    void transform::SetRotation(glm::vec3 pAxis, float pRadians) {
-        //needs to reset position to 0 later
-        transformMatrix = glm::rotate(transformMatrix, glm::radians(pRadians), pAxis);
+    void Transform::SetRotation(glm::vec3 pAxis, float pRadians) {
 
-        //needs to place position back to origin
+        transformMatrix = glm::rotate(transformMatrix, glm::radians(pRadians), pAxis);
     }
 
-    void transform::SetRotation(glm::vec3 pRotation) {
+    void Transform::SetRotation(glm::vec3 pRotation) {
         rotation = pRotation;
 
         //forward = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -48,27 +47,32 @@ namespace core {
         ApplyChanges();
     }
 
-    glm::vec3 transform::GetRotation() {
+    glm::vec3 Transform::GetRotation() {
         return rotation;
     }
 
-    glm::vec3 transform::GetRight() {
+    glm::vec3 Transform::GetRight() {
         return transformMatrix[0];
     }
 
-    glm::vec3 transform::GetUp() {
+    glm::vec3 Transform::GetUp() {
         return transformMatrix[1];
     }
 
-    glm::vec3 transform::GetForward() {
+    glm::vec3 Transform::GetForward() {
         return transformMatrix[2];
     }
 
-    void transform::SetScale(glm::vec3 scale) {
-        transformMatrix = glm::scale(transformMatrix, scale);
+    void Transform::SetScale(glm::vec3 pScale) {
+        scale = pScale;
+        ApplyChanges();
     }
 
-    void transform::ApplyChanges() {
+    glm::vec3 Transform::GetScale() {
+        return scale;
+    }
+
+    void Transform::ApplyChanges() {
         glm::mat4 tempTrans = glm::mat4(1.0f);
 
         tempTrans = glm::rotate(tempTrans, glm::radians(rotation.x), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -76,10 +80,12 @@ namespace core {
 
         tempTrans = glm::translate(tempTrans, position);
 
+        tempTrans = glm::scale(tempTrans, scale);
+
         transformMatrix = tempTrans;
     }
 
-    transform::~transform() {
+    Transform::~Transform() {
 
     }
 }

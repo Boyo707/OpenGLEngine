@@ -5,11 +5,12 @@
 
 namespace core {
 
-    class transform {
+    class Transform {
     private:
         glm::mat4 transformMatrix;
         glm::vec3 position;
         glm::vec3 rotation;
+        glm::vec3 scale;
 
         void ApplyChanges();
 
@@ -34,8 +35,8 @@ namespace core {
         glm::vec3 GetUp();
         glm::vec3 GetRight();
 
-        transform();
-        ~transform();
+        Transform();
+        ~Transform();
 
     };
 }

@@ -23,4 +23,8 @@ namespace core {
     glm::mat4 Model::getModelMatrix() const {
         return this->modelMatrix;
     }
+
+    void Model::setModelMatrix(glm::mat4 newModelMatrix) {
+        this->modelMatrix = newModelMatrix;
+    }
 }

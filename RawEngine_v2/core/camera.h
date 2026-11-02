@@ -9,8 +9,8 @@ namespace core {
 
     class camera {
     private:
-        core::transform transform;
-        core::transform targetTransform;
+        core::Transform transform;
+        core::Transform targetTransform;
         const float targetDistance = 1;
 
 
