@@ -5,10 +5,11 @@ in vec3 fPos;
 in vec3 fNor;
 in vec2 uv;
 
-uniform vec3 lightPosition;
-uniform vec3 lightColor;
 
 uniform vec3 cameraPos;
+
+uniform vec3 lightPosition;
+uniform vec3 lightColor;
 
 uniform vec3 objectColor;
 
@@ -22,7 +23,7 @@ uniform float quadraticAttenuation;
 
 void main()
 {
-   vec3 lightDir = fPos - lightPosition;
+   vec3 lightDir = lightPosition - fPos;
    vec3 normalLightDir = normalize(lightDir);
    vec3 ambient = ambientIntensity * lightColor;
 

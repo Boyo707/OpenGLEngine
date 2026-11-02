@@ -13,6 +13,7 @@
 #include "core/assimpLoader.h"
 #include "core/texture.h"
 #include "core/camera.h"
+#include "core/lightObject.h"
 //#define MAC_CLION
 #define VSTUDIO
 
@@ -318,17 +319,16 @@ int main() {
 
     core::Mesh quad = core::Mesh::generateQuad();
     core::Model quadModel({quad});
+
     quadModel.translate(glm::vec3(0,0,-5));
     quadModel.scale(glm::vec3(5, 5, 1));
 
-    core::Mesh bufferQuad = core::Mesh::generateQuad();
-    core::Model bufferQuadModel({bufferQuad});
 
     core::Model suzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
     suzanne.translate(glm::vec3(0, 0, -2));
+
     core::Model otherSuzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
-    otherSuzanne.translate(glm::vec3(0,0,0));
-    //quadModel.scale(glm::vec3(5, 5, 1));
+    otherSuzanne.translate(glm::vec3(-2,0,0));
 
     core::Texture cmgtGatoTexture("textures/CMGaTo_crop.png");
 
@@ -364,19 +364,13 @@ int main() {
 
     GLint mvpMatrixUniform = glGetUniformLocation(modelShaderProgram, "mvpMatrix");
     GLint modelMatrixUniform = glGetUniformLocation(modelShaderProgram, "modelMatrix");
+    GLint textureModelMatrixUniform = glGetUniformLocation(textureShaderProgram, "modelMatrix");
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
     GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
 
 
-    GLint lightPosUniform = glGetUniformLocation(lightModelShaderProgram, "lightPosition");
-    GLint lightColorUniform = glGetUniformLocation(lightModelShaderProgram, "lightColor");
-    GLint cameraPosUniform = glGetUniformLocation(lightModelShaderProgram, "cameraPos");
-    GLint objectColorUniform = glGetUniformLocation(lightModelShaderProgram, "objectColor");
-    GLint ambientIntensityUniform = glGetUniformLocation(lightModelShaderProgram, "ambientIntensity");
-    GLint specularColorUniform = glGetUniformLocation(lightModelShaderProgram, "specularColor");
-    GLint specularIntensityUniform = glGetUniformLocation(lightModelShaderProgram, "specularIntensity");
-    GLint specularPowerUniform = glGetUniformLocation(lightModelShaderProgram, "specularPower");
-    GLint attenuationUniform = glGetUniformLocation(lightModelShaderProgram, "quadraticAttenuation");
+    GLint lightingModelMatrixUniform = glGetUniformLocation(lightModelShaderProgram, "modelMatrix");
+    GLint lightingMvpMatrixUniform = glGetUniformLocation(lightModelShaderProgram, "mvpMatrix");
 
     GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
     GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
@@ -414,14 +408,15 @@ int main() {
     glm::vec3 colors = glm::vec3(0.0f,0.0f,0.0f);
     bool canInvert = false;
 
-    glm::vec3 lightPos = glm::vec3(0.0f,0.0f,-5.0f);
-    glm::vec3 lightColor = glm::vec3(1.0f,1.0f,1.0f);
-    glm::vec3 objectColor = glm::vec3(1.0f,1.0f,1.0f);
-    glm::vec3 specularColor = glm::vec3(1.0f,1.0f,1.0f);
-    float ambIntensity = 0.2f;
-    float specularIntensity = 1.0f;
-    float specularPower = 3.0f;
-    float attenuation = 1.0f;
+
+    //LightObject and Visualizer
+    core::Mesh lightQuad = core::Mesh::generateQuad();
+    core::Model lightQuadModel({lightQuad});
+
+    core::LightObject lightObject = core::LightObject(lightModelShaderProgram);
+    lightObject.transform.SetScale(glm::vec3(0.2f, 0.2f, 0.2f));
+
+    lightObject.transform.SetTransMatrix(lightQuadModel.getModelMatrix());
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -441,19 +436,19 @@ int main() {
 
         ImGui::Begin("Lighting Settings");
         ImGui::Text("BaseColors");
-        ImGui::SliderFloat3("Light Position", &lightPos.x, -2.0f, 2.0f);
-        ImGui::ColorEdit3("Light Color", &lightColor.x);
-        ImGui::ColorEdit3("Object Color", &objectColor.x);
+        ImGui::SliderFloat3("Light Position", &lightObject.lightPosition.x, -2.0f, 2.0f);
+        ImGui::ColorEdit3("Light Color", &lightObject.lightColor.x);
+        ImGui::ColorEdit3("Object Color", &lightObject.objectColor.x);
         ImGui::Text("Ambient");
-        ImGui::SliderFloat("Ambient Intensity", &ambIntensity, 0.001f, 1.0f);
+        ImGui::SliderFloat("Ambient Intensity", &lightObject.ambientIntensity, 0.001f, 1.0f);
 
         ImGui::Text("Specular");
-        ImGui::ColorEdit3("specularColor", &specularColor.x);
-        ImGui::SliderFloat("Specular Intensity", &specularIntensity, 0.001f, 1.0f);
-        ImGui::SliderFloat("Specular Power", &specularPower, 0.001f, 150.0f);
+        ImGui::ColorEdit3("specularColor", &lightObject.specularColor.x);
+        ImGui::SliderFloat("Specular Intensity", &lightObject.specularIntensity, 0.001f, 1.0f);
+        ImGui::SliderFloat("Specular Power", &lightObject.specularPower, 0.001f, 150.0f);
 
         ImGui::Text("Attenuation");
-        ImGui::SliderFloat("Attenuation", &attenuation, 0.001f, 20.0f);
+        ImGui::SliderFloat("Attenuation", &lightObject.quadraticAttenuation, 0.001f, 20.0f);
 
 
         ImGui::End();
@@ -470,7 +465,8 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-        suzanne.rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(rotationStrength) * static_cast<float>(deltaTime));
+
+
         otherSuzanne.rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(rotationStrength) * static_cast<float>(deltaTime));
 
         float speed = 0.05f + sprintSpeed;
@@ -478,12 +474,19 @@ int main() {
         camera.RotateCamera(rotateDir);
         camera.MoveCamera(moveDir * speed);
 
+        glm::vec3 cameraPos = camera.GetCameraPosition();
+
+        lightObject.transform.SetPosition(lightObject.lightPosition);
+        lightQuadModel.setModelMatrix(lightObject.transform.GetTransMatrix());
+
+
         view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
         projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
         //CatTextureQuad----------------------------------------------------------------
         glUseProgram(textureShaderProgram);
         glUniformMatrix4fv(textureModelUniform, 1, GL_FALSE, glm::value_ptr(projection * view * quadModel.getModelMatrix()));
+        glUniformMatrix4fv(textureModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(quadModel.getModelMatrix()));
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(textureUniform, 0);
         glBindTexture(GL_TEXTURE_2D, cmgtGatoTexture.getId());
@@ -491,31 +494,32 @@ int main() {
         glBindVertexArray(0);
         glActiveTexture(GL_TEXTURE0);
 
+
+
+
+        //LightingSuzaneModel
+        glUseProgram(lightModelShaderProgram);
+        glUniformMatrix4fv(lightingMvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * otherSuzanne.getModelMatrix()));
+        glUniformMatrix4fv(lightingModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(otherSuzanne.getModelMatrix()));
+        lightObject.UpdateLight(cameraPos);
+        otherSuzanne.render();
+        glBindVertexArray(0);
+
         //SuzaneModel----------------------------------------------------------------
         glUseProgram(modelShaderProgram);
         glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * suzanne.getModelMatrix()));
+        glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(suzanne.getModelMatrix()));
         suzanne.render();
         glBindVertexArray(0);
 
-        glm::vec3 cameraPos = camera.GetCameraPosition();
-        //LightingSuzaneModel
-        glUseProgram(lightModelShaderProgram);
-        glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * otherSuzanne.getModelMatrix()));
-        glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(otherSuzanne.getModelMatrix()));
-        glUniform3f(lightPosUniform, lightPos.x, lightPos.y, lightPos.z);
-        glUniform3f(cameraPosUniform, cameraPos.x, cameraPos.y, cameraPos.z);
-        glUniform3f(lightColorUniform, lightColor.x, lightColor.y, lightColor.z);
-        glUniform3f(objectColorUniform, objectColor.x, objectColor.y, objectColor.z);
-        glUniform1f(ambientIntensityUniform, ambIntensity);
-        glUniform3f(specularColorUniform, specularColor.x, specularColor.y, specularColor.z);
-        glUniform1f(specularIntensityUniform, specularIntensity);
-        glUniform1f(specularPowerUniform, specularPower);
-        glUniform1f(attenuationUniform, attenuation);
 
+        glUseProgram(modelShaderProgram);
 
-
-        otherSuzanne.render();
+        glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * lightQuadModel.getModelMatrix()));
+        glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(lightQuadModel.getModelMatrix()));
+        lightQuadModel.render();
         glBindVertexArray(0);
+
 
 
         //FrameBuffer----------------------------------------------------------------
