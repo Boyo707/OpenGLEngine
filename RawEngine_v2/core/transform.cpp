@@ -78,10 +78,11 @@ namespace core {
     void Transform::ApplyChanges() {
         glm::mat4 tempTrans = glm::mat4(1.0f);
 
+        tempTrans = glm::translate(tempTrans, position);
+
         tempTrans = glm::rotate(tempTrans, glm::radians(rotation.x), glm::vec3(0.0f, 1.0f, 0.0f));
         tempTrans = glm::rotate(tempTrans, glm::radians(rotation.y), glm::vec3(1.0f, 0.0f, 0.0f));
 
-        tempTrans = glm::translate(tempTrans, position);
 
         tempTrans = glm::scale(tempTrans, scale);
 

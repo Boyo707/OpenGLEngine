@@ -31,7 +31,7 @@ namespace scenes {
         Scene::Update(deltaTime, cameraMoveDir, cameraRotateDir, cameraSpeed);
 
         glm::mat4 view = glm::lookAt(sceneCamera.GetCameraPosition(), sceneCamera.GetTargetPosition(), sceneCamera.GetCameraUp());
-        glm::mat4 projection = glm::perspective(glm::radians(sceneCamera.GetCameraFOV()), static_cast<float>(800) / static_cast<float>(600), 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(sceneCamera.GetCameraFOV()), static_cast<float>(1400) / static_cast<float>(1000), 0.1f, 100.0f);
 
         object2.transform.SetRotation(glm::vec3(1.0f, 0.0f, 0.0f), 0.8f);
 

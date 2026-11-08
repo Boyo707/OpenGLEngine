@@ -33,8 +33,8 @@
 #include <imgui_impl_opengl3.h>
 #endif
 
-int g_width = 800;
-int g_height = 600;
+int g_width = 1200;
+int g_height = 1000;
 
 
 glm::vec3 moveDir = glm::vec3(0, 0, 0);
@@ -369,9 +369,7 @@ int main() {
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
     GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
 
-
-    GLint lightingModelMatrixUniform = glGetUniformLocation(lightModelShaderProgram, "modelMatrix");
-    GLint lightingMvpMatrixUniform = glGetUniformLocation(lightModelShaderProgram, "mvpMatrix");
+    
 
     GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
     GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
