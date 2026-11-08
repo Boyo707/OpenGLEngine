@@ -17,6 +17,18 @@ set(IMGUI_SOURCES
         imgui/backends/imgui_impl_opengl3.cpp
         core/texture.cpp
         core/texture.h
+        core/Transform.h
+        core/Transform.cpp
+        core/Objects/camera.h
+        core/Objects/camera.cpp
+        core/Objects/lightObject.h
+        core/Objects/lightObject.cpp
+        core/Scenes/scene.h
+        core/Scenes/scene.cpp
+        core/Scenes/lightingScene.h
+        core/Scenes/lightingScene.cpp
+        core/Objects/ModelObject.cpp
+        core/Objects/ModelObject.h
 )
 
 add_executable(RawEngine main.cpp
