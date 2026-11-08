@@ -1,5 +1,5 @@
 #pragma once
-
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 
 
@@ -18,6 +18,8 @@ namespace core {
         glm::vec3 forward;
         glm::vec3 right;
         glm::vec3 up;
+
+        void Update();
 
         void SetTransMatrix(glm::mat4 matrix);
         glm::mat4 GetTransMatrix();

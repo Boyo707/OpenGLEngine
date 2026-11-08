@@ -1,5 +1,4 @@
 #include "transform.h"
-#include <glm/ext/matrix_transform.hpp>
 
 //
 // Created by boydv on 27/10/2026.
@@ -32,9 +31,13 @@ namespace core {
         return position;
     }
 
-    void Transform::SetRotation(glm::vec3 pAxis, float pRadians) {
+    void Transform::SetRotation(glm::vec3 pAxis, float pRotationDistance) {
 
-        transformMatrix = glm::rotate(transformMatrix, glm::radians(pRadians), pAxis);
+        rotation += pAxis * pRotationDistance;
+
+        ApplyChanges();
+
+        //transformMatrix = glm::rotate(transformMatrix, glm::radians(pRadians), pAxis);
     }
 
     void Transform::SetRotation(glm::vec3 pRotation) {
@@ -75,14 +78,21 @@ namespace core {
     void Transform::ApplyChanges() {
         glm::mat4 tempTrans = glm::mat4(1.0f);
 
+        tempTrans = glm::translate(tempTrans, position);
+
         tempTrans = glm::rotate(tempTrans, glm::radians(rotation.x), glm::vec3(0.0f, 1.0f, 0.0f));
         tempTrans = glm::rotate(tempTrans, glm::radians(rotation.y), glm::vec3(1.0f, 0.0f, 0.0f));
 
-        tempTrans = glm::translate(tempTrans, position);
 
         tempTrans = glm::scale(tempTrans, scale);
 
         transformMatrix = tempTrans;
+    }
+
+    void Transform::Update() {
+        glm::vec3 matPos = glm::vec3(transformMatrix[3].x, transformMatrix[3].y, transformMatrix[3].z);
+        //printf("Matrix: %f, %f, %f", matPos.x, matPos.y, matPos.z);
+        //printf("normal Pos: %f, %f, %f", position.x, position.y, position.z);
     }
 
     Transform::~Transform() {
