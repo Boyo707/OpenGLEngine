@@ -10,6 +10,7 @@ namespace core {
         std::vector<core::Mesh> meshes;
         glm::mat4 modelMatrix;
     public:
+        Model(int bleh);
         Model(std::vector<core::Mesh> meshes) : meshes(meshes), modelMatrix(1) {}
         void render();
 

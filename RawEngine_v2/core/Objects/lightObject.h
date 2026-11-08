@@ -1,39 +1,40 @@
 #pragma once
-#include "transform.h"
+#include "../transform.h"
 #include <glad/glad.h>
-#include "mesh.h"
-#include "model.h"
+#include "../mesh.h"
+#include "../model.h"
 #include <vector>
+#include "imgui.h"
+#include <glm/gtc/type_ptr.hpp>
+#include <string>
 
 //
 // Created by boydv on 01/11/2026.
 //
-namespace core {
+namespace object {
 
     class LightObject {
         private:
+        unsigned int modelProgram;
+
         GLint lightPosUniform;
         GLint lightingModelMatrixUniform;
         GLint lightingMvpMatrixUniform;
         GLint lightColorUniform;
         GLint cameraPosUniform;
-        GLint objectColorUniform;
         GLint ambientIntensityUniform;
         GLint specularColorUniform;
         GLint specularIntensityUniform;
         GLint specularPowerUniform;
         GLint attenuationUniform;
 
-        void SetUpLight(unsigned int lightProgram);
-
         public:
         core::Transform transform;
 
-        std::vector<int> test;
+        std::string name;
 
         glm::vec3 lightColor;
         glm::vec3 lightPosition;
-        glm::vec3 objectColor;
 
         float ambientIntensity;
 
@@ -43,11 +44,13 @@ namespace core {
 
         float quadraticAttenuation;
 
-        void UpdateLight(glm::vec3 cameraPos);
+        void UpdateLight(glm::mat4 view, glm::mat4 projection, glm::vec3 cameraPos);
+
+        void Gui();
 
 
-
-        LightObject(unsigned int lightProgram);
+        LightObject(unsigned int lightProgram, unsigned int modelProgram, std::string name);
+        LightObject();
         ~LightObject();
     };
 }

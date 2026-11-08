@@ -8,12 +8,14 @@
 #include <sstream>
 #include <algorithm>
 #include <iostream>
+#include <unordered_map>
 
 #include "core/mesh.h"
 #include "core/assimpLoader.h"
 #include "core/texture.h"
-#include "core/camera.h"
-#include "core/lightObject.h"
+#include "core/Objects/camera.h"
+#include "core/Objects/lightObject.h"
+#include "core/Scenes/lightingScene.h"
 //#define MAC_CLION
 #define VSTUDIO
 
@@ -34,7 +36,6 @@
 int g_width = 800;
 int g_height = 600;
 
-core::camera camera;
 
 glm::vec3 moveDir = glm::vec3(0, 0, 0);
 glm::vec3 rotateDir = glm::vec3(0, 0, 0);
@@ -359,8 +360,8 @@ int main() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 
-    glm::mat4 view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
-    glm::mat4 projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
+    glm::mat4 view;
+    glm::mat4 projection;
 
     GLint mvpMatrixUniform = glGetUniformLocation(modelShaderProgram, "mvpMatrix");
     GLint modelMatrixUniform = glGetUniformLocation(modelShaderProgram, "modelMatrix");
@@ -410,13 +411,22 @@ int main() {
 
 
     //LightObject and Visualizer
-    core::Mesh lightQuad = core::Mesh::generateQuad();
+    /*core::Mesh lightQuad = core::Mesh::generateQuad();
     core::Model lightQuadModel({lightQuad});
 
-    core::LightObject lightObject = core::LightObject(lightModelShaderProgram);
+    object::LightObject lightObject = object::LightObject(lightModelShaderProgram);
     lightObject.transform.SetScale(glm::vec3(0.2f, 0.2f, 0.2f));
 
-    lightObject.transform.SetTransMatrix(lightQuadModel.getModelMatrix());
+    lightObject.transform.SetTransMatrix(lightQuadModel.getModelMatrix());*/
+
+
+    std::vector<unsigned int> shaderList;
+    shaderList.push_back(lightModelShaderProgram);
+    shaderList.push_back(modelShaderProgram);
+    shaderList.push_back(textureShaderProgram);
+
+
+    scenes::LightingScene test = scenes::LightingScene(shaderList);
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -425,6 +435,9 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
 
         ImGui::NewFrame();
+
+        test.Gui();
+
         ImGui::Begin("Post Processing Settings");
 
         ImGui::SliderFloat3("colors", &colors.x, 0.0f, 1.0f);
@@ -432,27 +445,8 @@ int main() {
 
         ImGui::Text("Hello :)");
 
-        ImGui::End();
-
-        ImGui::Begin("Lighting Settings");
-        ImGui::Text("BaseColors");
-        ImGui::SliderFloat3("Light Position", &lightObject.lightPosition.x, -2.0f, 2.0f);
-        ImGui::ColorEdit3("Light Color", &lightObject.lightColor.x);
-        ImGui::ColorEdit3("Object Color", &lightObject.objectColor.x);
-        ImGui::Text("Ambient");
-        ImGui::SliderFloat("Ambient Intensity", &lightObject.ambientIntensity, 0.001f, 1.0f);
-
-        ImGui::Text("Specular");
-        ImGui::ColorEdit3("specularColor", &lightObject.specularColor.x);
-        ImGui::SliderFloat("Specular Intensity", &lightObject.specularIntensity, 0.001f, 1.0f);
-        ImGui::SliderFloat("Specular Power", &lightObject.specularPower, 0.001f, 150.0f);
-
-        ImGui::Text("Attenuation");
-        ImGui::SliderFloat("Attenuation", &lightObject.quadraticAttenuation, 0.001f, 20.0f);
-
 
         ImGui::End();
-        ImGui::EndFrame();
 
 
 
@@ -471,17 +465,18 @@ int main() {
 
         float speed = 0.05f + sprintSpeed;
 
-        camera.RotateCamera(rotateDir);
-        camera.MoveCamera(moveDir * speed);
 
-        glm::vec3 cameraPos = camera.GetCameraPosition();
+        test.sceneCamera.SetFOV(FOV);
+        test.Update(deltaTime, moveDir, rotateDir, speed);
 
-        lightObject.transform.SetPosition(lightObject.lightPosition);
-        lightQuadModel.setModelMatrix(lightObject.transform.GetTransMatrix());
+        glm::vec3 cameraPos = test.sceneCamera.GetCameraPosition();
+
+        //lightObject.transform.SetPosition(lightObject.lightPosition);
+        //lightQuadModel.setModelMatrix(lightObject.transform.GetTransMatrix());
 
 
-        view = glm::lookAt(camera.GetCameraPosition(), camera.GetTargetPosition(), camera.GetCameraUp());
-        projection = glm::perspective(glm::radians(FOV), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
+        view = glm::lookAt(test.sceneCamera.GetCameraPosition(), test.sceneCamera.GetTargetPosition(), test.sceneCamera.GetCameraUp());
+        projection = glm::perspective(glm::radians(test.sceneCamera.GetCameraFOV()), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
         //CatTextureQuad----------------------------------------------------------------
         glUseProgram(textureShaderProgram);
@@ -498,12 +493,12 @@ int main() {
 
 
         //LightingSuzaneModel
-        glUseProgram(lightModelShaderProgram);
+        /*glUseProgram(lightModelShaderProgram);
         glUniformMatrix4fv(lightingMvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * otherSuzanne.getModelMatrix()));
         glUniformMatrix4fv(lightingModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(otherSuzanne.getModelMatrix()));
-        lightObject.UpdateLight(cameraPos);
+        //lightObject.UpdateLight(cameraPos);
         otherSuzanne.render();
-        glBindVertexArray(0);
+        glBindVertexArray(0);*/
 
         //SuzaneModel----------------------------------------------------------------
         glUseProgram(modelShaderProgram);
@@ -513,12 +508,12 @@ int main() {
         glBindVertexArray(0);
 
 
-        glUseProgram(modelShaderProgram);
+        /*glUseProgram(modelShaderProgram);
 
         glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * lightQuadModel.getModelMatrix()));
         glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(lightQuadModel.getModelMatrix()));
         lightQuadModel.render();
-        glBindVertexArray(0);
+        glBindVertexArray(0);*/
 
 
 

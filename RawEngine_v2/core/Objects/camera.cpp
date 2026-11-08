@@ -3,7 +3,7 @@
 //
 #include "camera.h"
 
-namespace core {
+namespace object {
 
     camera::camera() {
 
@@ -22,8 +22,16 @@ namespace core {
         targetTransform.SetPosition(transform.GetPosition() + targetTransform.GetForward() * targetDistance);
     }
 
+    void camera::SetFOV(float fov) {
+        this->fov = fov;
+    }
+
     glm::vec3 camera::GetCameraPosition() {
         return transform.GetPosition();
+    }
+
+    float camera::GetCameraFOV() {
+        return fov;
     }
 
     glm::vec3 camera::GetTargetPosition() {
