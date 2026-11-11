@@ -325,13 +325,10 @@ int main() {
     quadModel.scale(glm::vec3(5, 5, 1));
 
 
-    core::Model suzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
-    suzanne.translate(glm::vec3(0, 0, -2));
-
-    core::Model otherSuzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
-    otherSuzanne.translate(glm::vec3(-2,0,0));
 
     core::Texture cmgtGatoTexture("textures/CMGaTo_crop.png");
+    core::Texture stoneTexture("textures/StoneAlbedo.png");
+    core::Texture stoneNormalMap("textures/StoneNormal.png");
 
     glm::vec4 clearColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
     glClearColor(clearColor.r,
@@ -368,6 +365,7 @@ int main() {
     GLint textureModelMatrixUniform = glGetUniformLocation(textureShaderProgram, "modelMatrix");
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
     GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
+    GLint normalUniform = glGetUniformLocation(textureShaderProgram, "text");
 
     
 
@@ -424,7 +422,7 @@ int main() {
     shaderList.push_back(textureShaderProgram);
 
 
-    scenes::LightingScene test = scenes::LightingScene(shaderList);
+    scenes::LightingScene lightScene = scenes::LightingScene(shaderList);
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -434,7 +432,7 @@ int main() {
 
         ImGui::NewFrame();
 
-        test.Gui();
+        lightScene.Gui();
 
         ImGui::Begin("Post Processing Settings");
 
@@ -456,25 +454,14 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-
-
-        otherSuzanne.rotate(glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(rotationStrength) * static_cast<float>(deltaTime));
-
         float speed = 0.05f + sprintSpeed;
 
 
-        test.sceneCamera.SetFOV(FOV);
-        test.Update(deltaTime, moveDir, rotateDir, speed);
+        lightScene.sceneCamera.SetFOV(FOV);
+        lightScene.Update(deltaTime, moveDir, rotateDir, speed);
 
-        glm::vec3 cameraPos = test.sceneCamera.GetCameraPosition();
-
-        //lightObject.transform.SetPosition(lightObject.lightPosition);
-        //lightQuadModel.setModelMatrix(lightObject.transform.GetTransMatrix());
-
-
-        view = glm::lookAt(test.sceneCamera.GetCameraPosition(), test.sceneCamera.GetTargetPosition(), test.sceneCamera.GetCameraUp());
-        projection = glm::perspective(glm::radians(test.sceneCamera.GetCameraFOV()), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
+        view = glm::lookAt(lightScene.sceneCamera.transform.position, lightScene.sceneCamera.GetTargetPosition(), lightScene.sceneCamera.transform.GetUp());
+        projection = glm::perspective(glm::radians(lightScene.sceneCamera.GetCameraFOV()), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
         //CatTextureQuad----------------------------------------------------------------
         glUseProgram(textureShaderProgram);
@@ -482,36 +469,13 @@ int main() {
         glUniformMatrix4fv(textureModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(quadModel.getModelMatrix()));
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(textureUniform, 0);
-        glBindTexture(GL_TEXTURE_2D, cmgtGatoTexture.getId());
+        glBindTexture(GL_TEXTURE_2D, stoneTexture.getId());
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(normalUniform, 1);
+        glBindTexture(GL_TEXTURE_2D, stoneNormalMap.getId());
+
         quadModel.render();
         glBindVertexArray(0);
-        glActiveTexture(GL_TEXTURE0);
-
-
-
-
-        //LightingSuzaneModel
-        /*glUseProgram(lightModelShaderProgram);
-        glUniformMatrix4fv(lightingMvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * otherSuzanne.getModelMatrix()));
-        glUniformMatrix4fv(lightingModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(otherSuzanne.getModelMatrix()));
-        //lightObject.UpdateLight(cameraPos);
-        otherSuzanne.render();
-        glBindVertexArray(0);*/
-
-        //SuzaneModel----------------------------------------------------------------
-        glUseProgram(modelShaderProgram);
-        glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * suzanne.getModelMatrix()));
-        glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(suzanne.getModelMatrix()));
-        suzanne.render();
-        glBindVertexArray(0);
-
-
-        /*glUseProgram(modelShaderProgram);
-
-        glUniformMatrix4fv(mvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * lightQuadModel.getModelMatrix()));
-        glUniformMatrix4fv(modelMatrixUniform, 1, GL_FALSE, glm::value_ptr(lightQuadModel.getModelMatrix()));
-        lightQuadModel.render();
-        glBindVertexArray(0);*/
 
 
 
@@ -524,9 +488,11 @@ int main() {
 
         //Maybe try and turn this into a better looking program (make use of the uniform location of texture)
         glUseProgram(frameBufferProgram);
-        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f);
+        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
         glUniform1i(bufferInvert, canInvert);
         glBindVertexArray(bufferQuadVAO); //Can't use the quad mesh provided since it doesnt give texcoords in the attribute pointer
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(bufferTextureUniform, 1);
         glBindTexture(GL_TEXTURE_2D, bufferTexture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 

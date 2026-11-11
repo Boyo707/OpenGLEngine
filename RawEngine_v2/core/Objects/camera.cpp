@@ -10,24 +10,19 @@ namespace object {
     }
 
     void camera::RotateCamera(glm::vec3 rotation) {
-        targetTransform.SetRotation(rotation);
-        targetTransform.SetPosition(transform.GetPosition() + targetTransform.GetForward() * targetDistance);
-        transform.SetRotation(rotation);
+        transform.rotation = rotation;
+        transform.Update();
     }
 
     void camera::MoveCamera(glm::vec3 direction) {
 
-        transform.SetPosition(transform.GetPosition() + transform.GetRight() * direction.x + transform.GetUp() * direction.y + transform.GetForward() * direction.z);
+        transform.position = (transform.position + transform.GetRight() * direction.x + transform.GetUp() * direction.y + transform.GetForward() * direction.z);
 
-        targetTransform.SetPosition(transform.GetPosition() + targetTransform.GetForward() * targetDistance);
+        transform.Update();
     }
 
     void camera::SetFOV(float fov) {
         this->fov = fov;
-    }
-
-    glm::vec3 camera::GetCameraPosition() {
-        return transform.GetPosition();
     }
 
     float camera::GetCameraFOV() {
@@ -35,12 +30,9 @@ namespace object {
     }
 
     glm::vec3 camera::GetTargetPosition() {
-        return targetTransform.GetPosition();
+        return transform.position + (transform.GetForward() * 2.0f);
     }
 
-    glm::vec3 camera::GetCameraUp() {
-        return transform.GetUp();
-    }
 
     camera::~camera() {
 

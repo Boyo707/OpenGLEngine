@@ -20,7 +20,6 @@ namespace object {
         modelMatrixUniform = glGetUniformLocation(modelProgram, "modelMatrix");
 
         lightColor = glm::vec3(1,1,1);
-        lightPosition = glm::vec3(0,0,0);
 
         ambientIntensity = 0.2f;
 
@@ -46,15 +45,13 @@ namespace object {
 
 
         transform.SetTransMatrix(model.getModelMatrix());
-        transform.SetScale(glm::vec3(0.2f, 0.2f, 0.2f));
+        transform.scale = glm::vec3(0.2f, 0.2f, 0.2f);
 
     }
 
     LightObject::LightObject() {
 
         lightColor = glm::vec3(1,1,1);
-        lightPosition = glm::vec3(0,0,0);
-        //objectColor = glm::vec3(1,0,0);;
 
         ambientIntensity = 0.2f;
 
@@ -66,11 +63,10 @@ namespace object {
     }
     
     void LightObject::UpdateLight(glm::mat4 view, glm::mat4 projection, glm::vec3 cameraPos) {
-
-        transform.SetPosition(lightPosition);
+        transform.Update();
         model.setModelMatrix(transform.GetTransMatrix());
 
-        glUniform3f(lightPosUniform, transform.GetPosition().x, transform.GetPosition().y, transform.GetPosition().z);
+        glUniform3f(lightPosUniform, transform.position.x, transform.position.y, transform.position.z);
         glUniform3f(cameraPosUniform, cameraPos.x, cameraPos.y, cameraPos.z);
         glUniform3f(lightColorUniform,  lightColor.x,  lightColor.y,  lightColor.z);
         glUniform1f(ambientIntensityUniform,  ambientIntensity);
@@ -92,7 +88,7 @@ namespace object {
     void LightObject::Gui() {
         ImGui::SeparatorText(name.c_str());
         ImGui::Text("BaseColors");
-        ImGui::DragFloat3("Light Position", &lightPosition.x, 0.1f);
+        ImGui::DragFloat3("Light Position", &transform.position.x, 0.1f);
         ImGui::ColorEdit3("Light Color", &lightColor.x);
         ImGui::Text("Ambient");
         ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.001f, 1.0f);

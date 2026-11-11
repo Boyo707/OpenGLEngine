@@ -7,7 +7,7 @@
 namespace core {
     Model AssimpLoader::loadModel(const std::string& path) {
         Assimp::Importer import;
-        const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
+        const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
 
         if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -46,6 +46,7 @@ namespace core {
                 uvs.x = 0.0f;
                 uvs.y = 0.0f;
             }
+            // I NEED TO FEED THE TANGENTS HERE?
             vertices.emplace_back(glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z), glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z), uvs);
         }
         aiFace face;

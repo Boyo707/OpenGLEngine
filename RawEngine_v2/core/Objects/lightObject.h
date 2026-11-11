@@ -34,7 +34,6 @@ namespace object {
         std::string name;
 
         glm::vec3 lightColor;
-        glm::vec3 lightPosition;
 
         float ambientIntensity;
 
