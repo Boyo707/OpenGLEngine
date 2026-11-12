@@ -7,23 +7,24 @@
 
 namespace object {
 
-    class camera {
+    class Camera {
     private:
-        const float targetDistance = 1;
-        float fov;
-
+        glm::vec3* moveDir;
+        glm::vec3* rotateDir;
+        float* speed;
+        float* fov;
     public:
         core::Transform transform;
 
-        void RotateCamera(glm::vec3 rotation);
-        void MoveCamera(glm::vec3 position);
+        void UpdateCamera();
         void SetFOV(float fov);
 
-        float GetCameraFOV();
-        glm::vec3 GetTargetPosition();
+        float GetCameraFOV() const;
+        glm::vec3 GetTargetPosition() const;
 
-        camera();
-        ~camera();
+        Camera();
+        Camera(glm::vec3& pMoveDir, glm::vec3& pRotateDir, float& pSpeed, float& pFOV);
+        ~Camera();
 
     };
 }

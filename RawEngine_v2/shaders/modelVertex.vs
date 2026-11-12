@@ -12,12 +12,12 @@ out vec3 fNor;
 out vec2 uv;
 
 void main() {
-  //fPos = aPos;
   vec4 worldSpacePos = modelMatrix * vec4(aPos, 1);
   fPos = vec3(worldSpacePos.x, worldSpacePos.y, worldSpacePos.z);
 
-  vec4 normal = normalize(modelMatrix * vec4(aNor, 0));
-  fNor = vec3(normal.x, normal.y, normal.z);
+  vec4 worldSpaceNormal = normalize(modelMatrix * vec4(aNor, 0));
+  fNor = vec3(worldSpaceNormal.x, worldSpaceNormal.y, worldSpaceNormal.z);
+
   uv = aUv;
   gl_Position = mvpMatrix * vec4(aPos, 1.0);
 }

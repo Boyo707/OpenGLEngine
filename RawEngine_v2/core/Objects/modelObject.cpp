@@ -7,62 +7,63 @@
 
 
 namespace object {
-    GLint lightingModelMatrixUniform;
-    GLint lightingMvpMatrixUniform;
-
-    GLint objectColorUniform;
-
-    core::Model myModel = core::Model(0);
-
+    //make a list of pointers for the model.
     ModelObject::ModelObject() {
 
     }
 
-    ModelObject::ModelObject(unsigned int lightProgram, std::string objectName) {
+    ModelObject::ModelObject(const unsigned int& lightProgram, const std::string& objectName) {
         shaderProgram = lightProgram;
         name = objectName;
 
-        objPos = glm::vec3(0,0,0);
         objRot = glm::vec3(0,0,0);
         objScale = glm::vec3(1,1,1);
+        objectColor = glm::vec3(1,0,0);;
 
         lightingModelMatrixUniform = glGetUniformLocation(lightProgram, "modelMatrix");
         lightingMvpMatrixUniform = glGetUniformLocation(lightProgram, "mvpMatrix");
-
         objectColorUniform = glGetUniformLocation(lightProgram, "objectColor");
 
-        objectColor = glm::vec3(1,0,0);;
-
-        myModel = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
-
-        transform.SetTransMatrix(myModel.getModelMatrix());
+        model = new core::Model(core::AssimpLoader::loadModel("models/nonormalmonkey.obj"));
+        transform.SetTransMatrix(model->getModelMatrix());
     }
 
-    void ModelObject::Update(glm::mat4 view, glm::mat4 projection) {
-
-        transform.Update();
-        myModel.setModelMatrix(transform.GetTransMatrix());
-        //transform.Update();
+    void ModelObject::Update(const glm::mat4& view,const glm::mat4& projection, Camera camera) {
+        objPos = transform.GetPosition();
+        objRot = transform.GetRotation();
+        objScale = transform.GetScale();
+        model->setModelMatrix(transform.GetTransMatrix());
 
         glUseProgram(shaderProgram);
-        glUniformMatrix4fv(lightingMvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * myModel.getModelMatrix()));
-        glUniformMatrix4fv(lightingModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(myModel.getModelMatrix()));
+        glUniformMatrix4fv(lightingMvpMatrixUniform, 1, GL_FALSE, glm::value_ptr(projection * view * model->getModelMatrix()));
+        glUniformMatrix4fv(lightingModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(model->getModelMatrix()));
         glUniform3f(objectColorUniform,  objectColor.x,  objectColor.y,  objectColor.z);
-        myModel.render();
+        model->render();
         glBindVertexArray(0);
     }
 
-    void ModelObject::Gui(int id) {
+    void ModelObject::Gui() {
 
         ImGui::PushID(this);
         ImGui::SeparatorText(name.c_str());
 
-        ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
-        ImGui::DragFloat3("Rotation", &transform.rotation.x, 0.1f);
-        ImGui::DragFloat3("Scale", &transform.scale.x, 0.1f);
+        if (ImGui::DragFloat3("Position", &objPos.x, 0.1f)) {
+            printf("Changed Pos------------ \n");
+            transform.SetPosition(objPos);
+        }
+        if (ImGui::DragFloat3("Rotation", &objRot.x, 0.1f)) {
+            printf("Changed Rot------------ \n");
+            transform.SetRotation(objRot);
+        }
+        if (ImGui::DragFloat3("Scale", &objScale.x, 0.1f)) {
+            printf("Changed Scale------------ \n");
+            transform.SetScale(objScale);
+        }
         ImGui::ColorEdit3("Object Color", &objectColor.x);
-
         ImGui::PopID();
+    }
 
+    void ModelObject::Delete() {
+        delete model;
     }
 }

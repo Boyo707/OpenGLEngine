@@ -1,22 +1,40 @@
 #pragma once
-#include "../transform.h"
 #include <glad/glad.h>
 #include "../mesh.h"
 #include "../model.h"
 #include <vector>
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
-#include <string>
+
+#include "object.h"
 
 //
 // Created by boydv on 01/11/2026.
 //
 namespace object {
 
-    class LightObject {
-        private:
-        unsigned int modelProgram;
+    class LightObject : public Object{
+    public:
+        glm::vec3 lightColor;
+        float ambientIntensity;
+        glm::vec3 specularColor;
+        float specularIntensity;
+        float specularPower;
+        float quadraticAttenuation;
 
+        LightObject(const unsigned int& lightProgram,const unsigned int& modelProgram, const std::string& name);
+        LightObject();
+        ~LightObject();
+
+        void Update(const glm::mat4& view,const glm::mat4& projection, Camera camera) override;
+        void Gui() override;
+        void Delete() override;
+
+    private:
+        unsigned int modelProgram;
+        unsigned int lightProgram;
+        GLint mvpMatrixUniform;
+        GLint modelMatrixUniform;
         GLint lightPosUniform;
         GLint lightingModelMatrixUniform;
         GLint lightingMvpMatrixUniform;
@@ -27,29 +45,5 @@ namespace object {
         GLint specularIntensityUniform;
         GLint specularPowerUniform;
         GLint attenuationUniform;
-
-        public:
-        core::Transform transform;
-
-        std::string name;
-
-        glm::vec3 lightColor;
-
-        float ambientIntensity;
-
-        glm::vec3 specularColor;
-        float specularIntensity;
-        float specularPower;
-
-        float quadraticAttenuation;
-
-        void UpdateLight(glm::mat4 view, glm::mat4 projection, glm::vec3 cameraPos);
-
-        void Gui();
-
-
-        LightObject(unsigned int lightProgram, unsigned int modelProgram, std::string name);
-        LightObject();
-        ~LightObject();
     };
 }

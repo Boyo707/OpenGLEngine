@@ -29,6 +29,8 @@ set(IMGUI_SOURCES
         core/Scenes/lightingScene.cpp
         core/Objects/ModelObject.cpp
         core/Objects/ModelObject.h
+        core/Objects/object.h
+        core/Objects/object.cpp
 )
 
 add_executable(RawEngine main.cpp

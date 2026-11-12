@@ -9,21 +9,25 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 
+#include "../Objects/lightObject.h"
+#include "../Objects/modelObject.h"
+
 #include <unordered_map>
 
 namespace scenes {
 
     class LightingScene : public Scene {
-
     public:
-        void Update(float deltaTime, glm::vec3 cameraMoveDir, glm::vec3 cameraRotateDir, float cameraSpeed) override;
+        LightingScene(const std::vector<unsigned int>& shaders, object::Camera& camera);
+        ~LightingScene();
+
+        void Update(float deltaTime) override;
         void Start() override;
         void Gui() override;
 
-        core::Model otherSuzanne = core::AssimpLoader::loadModel("models/nonormalmonkey.obj");
         std::vector<unsigned int> shaders;
-
-        LightingScene(std::vector<unsigned int> &shaders);
-
+        object::ModelObject object;
+        object::ModelObject object2;
+        object::LightObject lightObject;
     };
 }

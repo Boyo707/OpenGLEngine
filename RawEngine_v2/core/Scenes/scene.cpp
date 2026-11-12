@@ -5,22 +5,20 @@
 
 
 namespace scenes {
+    Scene::Scene() {}
 
     void Scene::Start() {
         hasStarted = true;
     }
 
-    void Scene::Update(float deltaTime, glm::vec3 cameraMoveDir, glm::vec3 cameraRotateDir, float cameraSpeed) {
-        if (!hasStarted) {
-            Start();
+    void Scene::Update(float deltaTime) {
+        if (!hasStarted) { Start(); }
+        sceneCamera.UpdateCamera();
+
+        for (int i = 0; i < sceneObjects.size(); ++i) {
+            sceneObjects[i]->Update(viewMatrix, projectionMatrix, sceneCamera);
         }
-
-        sceneCamera.RotateCamera(cameraRotateDir);
-        sceneCamera.MoveCamera(cameraMoveDir * cameraSpeed);
     }
 
-    void Scene::Gui() {
-
-    }
-
+    void Scene::Gui() {}
 }

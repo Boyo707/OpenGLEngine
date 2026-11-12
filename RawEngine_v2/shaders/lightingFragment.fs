@@ -5,25 +5,20 @@ in vec3 fPos;
 in vec3 fNor;
 in vec2 uv;
 
-
 uniform vec3 cameraPos;
-
-uniform vec3 lightPosition;
-uniform vec3 lightColor;
-
 uniform vec3 objectColor;
 
+//Light variables
+uniform vec3 lightPosition;
+uniform vec3 lightColor;
 uniform float ambientIntensity;
-
 uniform vec3 specularColor;
 uniform float specularIntensity;
 uniform float specularPower;
-
 uniform float quadraticAttenuation;
 
 void main()
 {
-
    vec3 newLight = vec3(1,1,1) * 0.01 + lightColor;
    vec3 newObjColor = vec3(1,1,1) * 0.01 + objectColor ;
    vec3 lightDir = lightPosition - fPos;

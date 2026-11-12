@@ -5,36 +5,29 @@
 
 namespace object {
 
-    camera::camera() {
-
+    Camera::Camera() {}
+    Camera::Camera(glm::vec3& pMoveDir, glm::vec3& pRotateDir, float& pSpeed, float& pFOV) {
+        moveDir = &pMoveDir;
+        rotateDir = &pRotateDir;
+        speed = &pSpeed;
+        fov = &pFOV;
     }
 
-    void camera::RotateCamera(glm::vec3 rotation) {
-        transform.rotation = rotation;
-        transform.Update();
+    void Camera::UpdateCamera() {
+        glm::vec3 finalMoveDir = *moveDir * *speed;
+        transform.SetRotation(*rotateDir);
+        transform.SetPosition((transform.GetPosition() + transform.GetRight() * finalMoveDir.x + transform.GetUp() * finalMoveDir.y + transform.GetForward() * finalMoveDir.z));
     }
 
-    void camera::MoveCamera(glm::vec3 direction) {
-
-        transform.position = (transform.position + transform.GetRight() * direction.x + transform.GetUp() * direction.y + transform.GetForward() * direction.z);
-
-        transform.Update();
+    float Camera::GetCameraFOV() const{
+        return *fov;
     }
 
-    void camera::SetFOV(float fov) {
-        this->fov = fov;
+    glm::vec3 Camera::GetTargetPosition() const{
+        return transform.GetPosition() + (transform.GetForward() * 2.0f);
     }
 
-    float camera::GetCameraFOV() {
-        return fov;
-    }
-
-    glm::vec3 camera::GetTargetPosition() {
-        return transform.position + (transform.GetForward() * 2.0f);
-    }
-
-
-    camera::~camera() {
+    Camera::~Camera() {
 
     }
 

@@ -42,7 +42,7 @@ glm::vec3 rotateDir = glm::vec3(0, 0, 0);
 
 float FOV = 45.0f;
 
-float sprintSpeed = 0.0f;
+float cameraSpeed = 0;
 
 bool firstMouse = true;
 bool isLookingAround = false;
@@ -53,10 +53,11 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-
-    glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 forward = glm::vec3(0.0f, 0.0f, 1.0f);
+    const float cameraDefaultSpeed = 0.05f;
+    const float cameraSprintSpeed = 0.08f;
+    const glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
+    const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    const glm::vec3 forward = glm::vec3(0.0f, 0.0f, 1.0f);
 
     glm::vec3 inputDir = glm::vec3(0, 0, 0);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
@@ -79,13 +80,11 @@ void processInput(GLFWwindow *window) {
     }
 
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        sprintSpeed = 0.08f;
+        cameraSpeed = cameraDefaultSpeed + cameraSprintSpeed;
     }
     else {
-        sprintSpeed = 0.0f;
+        cameraSpeed = cameraDefaultSpeed;
     }
-
-
 
     if (inputDir != glm::vec3(0, 0, 0)) {
         inputDir = glm::normalize(inputDir);
@@ -169,7 +168,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
         mouseOffset.y *= sensitivity;
 
         rotateDir += glm::vec3(mouseOffset, 0.0f);
-
 
         glfwSetCursorPos(window,centerX , centerY);
     }
@@ -261,7 +259,6 @@ int main() {
     const GLuint bufferVertexShader = generateShader("shaders/bufferVertex.vs", GL_VERTEX_SHADER);
     const GLuint bufferFragmentShader = generateShader("shaders/bufferFragment.fs", GL_FRAGMENT_SHADER);
 
-
     int success;
     char infoLog[512];
 
@@ -309,7 +306,6 @@ int main() {
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
     glDeleteShader(modelVertexShader);
     glDeleteShader(fragmentShader);
     glDeleteShader(textureShader);
@@ -324,8 +320,6 @@ int main() {
     quadModel.translate(glm::vec3(0,0,-5));
     quadModel.scale(glm::vec3(5, 5, 1));
 
-
-
     core::Texture cmgtGatoTexture("textures/CMGaTo_crop.png");
     core::Texture stoneTexture("textures/StoneAlbedo.png");
     core::Texture stoneNormalMap("textures/StoneNormal.png");
@@ -333,7 +327,6 @@ int main() {
     glm::vec4 clearColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
     glClearColor(clearColor.r,
                  clearColor.g, clearColor.b, clearColor.a);
-
 
     float bufferQuadVertices[] = {
         -1.0f,  1.0f,  0.0f, 1.0f,
@@ -356,18 +349,13 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
-
     glm::mat4 view;
     glm::mat4 projection;
 
-    GLint mvpMatrixUniform = glGetUniformLocation(modelShaderProgram, "mvpMatrix");
-    GLint modelMatrixUniform = glGetUniformLocation(modelShaderProgram, "modelMatrix");
     GLint textureModelMatrixUniform = glGetUniformLocation(textureShaderProgram, "modelMatrix");
     GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
     GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
     GLint normalUniform = glGetUniformLocation(textureShaderProgram, "text");
-
-    
 
     GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
     GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
@@ -395,72 +383,45 @@ int main() {
         printf("uh oh");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
     double currentTime = glfwGetTime();
     double finishFrameTime = 0.0;
     float deltaTime = 0.0f;
-    float rotationStrength = 100.0f;
 
     //PostProcessing values
     glm::vec3 colors = glm::vec3(0.0f,0.0f,0.0f);
     bool canInvert = false;
-
-
-    //LightObject and Visualizer
-    /*core::Mesh lightQuad = core::Mesh::generateQuad();
-    core::Model lightQuadModel({lightQuad});
-
-    object::LightObject lightObject = object::LightObject(lightModelShaderProgram);
-    lightObject.transform.SetScale(glm::vec3(0.2f, 0.2f, 0.2f));
-
-    lightObject.transform.SetTransMatrix(lightQuadModel.getModelMatrix());*/
-
 
     std::vector<unsigned int> shaderList;
     shaderList.push_back(lightModelShaderProgram);
     shaderList.push_back(modelShaderProgram);
     shaderList.push_back(textureShaderProgram);
 
-
-    scenes::LightingScene lightScene = scenes::LightingScene(shaderList);
+    object::Camera camera = object::Camera(moveDir, rotateDir, cameraSpeed, FOV);
+    scenes::LightingScene lightScene = scenes::LightingScene(shaderList, camera);
 
     while (!glfwWindowShouldClose(window)) {
-
-
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
 
         ImGui::NewFrame();
-
         lightScene.Gui();
-
         ImGui::Begin("Post Processing Settings");
-
         ImGui::SliderFloat3("colors", &colors.x, 0.0f, 1.0f);
         ImGui::Checkbox("InvertColors", &canInvert);
-
         ImGui::Text("Hello :)");
-
-
         ImGui::End();
-
-
 
         processInput(window);
 
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
-
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        float speed = 0.05f + sprintSpeed;
 
+        lightScene.Update(deltaTime);
 
-        lightScene.sceneCamera.SetFOV(FOV);
-        lightScene.Update(deltaTime, moveDir, rotateDir, speed);
-
-        view = glm::lookAt(lightScene.sceneCamera.transform.position, lightScene.sceneCamera.GetTargetPosition(), lightScene.sceneCamera.transform.GetUp());
+        view = glm::lookAt(lightScene.sceneCamera.transform.GetPosition(), lightScene.sceneCamera.GetTargetPosition(), lightScene.sceneCamera.transform.GetUp());
         projection = glm::perspective(glm::radians(lightScene.sceneCamera.GetCameraFOV()), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
         //CatTextureQuad----------------------------------------------------------------
@@ -477,14 +438,11 @@ int main() {
         quadModel.render();
         glBindVertexArray(0);
 
-
-
         //FrameBuffer----------------------------------------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDisable(GL_DEPTH_TEST);
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
 
         //Maybe try and turn this into a better looking program (make use of the uniform location of texture)
         glUseProgram(frameBufferProgram);
@@ -500,14 +458,12 @@ int main() {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         /*glUseProgram(frameBufferProgram);
-
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(bufferTextureUniform, 0);
         glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
         bufferQuad.render();
         glBindVertexArray(0);
         glActiveTexture(GL_TEXTURE0);*/
-
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -518,15 +474,12 @@ int main() {
     }
 
     glDeleteProgram(modelShaderProgram);
-
     glDeleteProgram(frameBufferProgram);
     glDeleteProgram(lightFragmentShader);
     glDeleteFramebuffers(1, &bufferTexture);
     glDeleteRenderbuffers(1, &rbo);
-
     glDeleteVertexArrays(1, &bufferQuadVAO);
     glDeleteBuffers(1, &bufferQuadVBO);
-
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

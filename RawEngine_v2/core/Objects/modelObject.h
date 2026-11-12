@@ -2,37 +2,31 @@
 // Created by boydv on 07/11/2026.
 //
 
-#ifndef RAWENGINE_MODELOBJECT_H
-#define RAWENGINE_MODELOBJECT_H
-#include "../transform.h"
+#pragma once
+#include "object.h"
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
-#include "lightObject.h"
 #include "../assimpLoader.h"
 #include "imgui.h"
 
 
 namespace object {
-    class ModelObject {
+    class ModelObject : public Object{
 
     public:
-        std::string name;
-        core::Transform transform;
-        glm::vec3 objectColor;
-
-        void Update(glm::mat4 view, glm::mat4 projection);
         ModelObject();
-        ModelObject(unsigned int lightProgram, std::string objectName);
-
-        void Gui(int id);
+        ModelObject(const unsigned int& lightProgram, const std::string& objectName);
+        void Update(const glm::mat4& view, const glm::mat4& projection, Camera camera) override;
+        void Gui() override;
+        void Delete() override;
 
     private:
-        glm::vec3 objPos;
-        glm::vec3 objRot;
-        glm::vec3 objScale;
         unsigned int shaderProgram;
+        GLint lightingModelMatrixUniform;
+        GLint lightingMvpMatrixUniform;
+        GLint objectColorUniform;
+
+        glm::vec3 objectColor;
+        core::Model* model;
     };
 }
-
-
-#endif //RAWENGINE_MODELOBJECT_H
