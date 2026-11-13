@@ -425,18 +425,18 @@ int main() {
         projection = glm::perspective(glm::radians(lightScene.sceneCamera.GetCameraFOV()), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
 
         //CatTextureQuad----------------------------------------------------------------
-        glUseProgram(textureShaderProgram);
+        /*glUseProgram(textureShaderProgram);
         glUniformMatrix4fv(textureModelUniform, 1, GL_FALSE, glm::value_ptr(projection * view * quadModel.getModelMatrix()));
         glUniformMatrix4fv(textureModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(quadModel.getModelMatrix()));
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(textureUniform, 0);
         glBindTexture(GL_TEXTURE_2D, stoneTexture.getId());
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(normalUniform, 1);
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(normalUniform, 0);
         glBindTexture(GL_TEXTURE_2D, stoneNormalMap.getId());
 
         quadModel.render();
-        glBindVertexArray(0);
+        glBindVertexArray(0);*/
 
         //FrameBuffer----------------------------------------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

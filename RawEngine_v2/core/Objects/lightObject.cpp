@@ -16,20 +16,14 @@ namespace object {
 
         lightColor = glm::vec3(1,1,1);
         ambientIntensity = 0.2f;
-        specularColor = glm::vec3(1,1,1);
-        specularIntensity = 1.0f;
-        specularPower = 3.0f;
         quadraticAttenuation = 1.0f;
 
-        lightPosUniform = glGetUniformLocation(lightProgram, "lightPosition");
+        lightPosUniform = glGetUniformLocation(lightProgram, "lightPos");
         lightingModelMatrixUniform = glGetUniformLocation(lightProgram, "modelMatrix");
         lightingMvpMatrixUniform = glGetUniformLocation(lightProgram, "mvpMatrix");
         lightColorUniform = glGetUniformLocation(lightProgram, "lightColor");
         cameraPosUniform = glGetUniformLocation(lightProgram, "cameraPos");
         ambientIntensityUniform = glGetUniformLocation(lightProgram, "ambientIntensity");
-        specularColorUniform = glGetUniformLocation(lightProgram, "specularColor");
-        specularIntensityUniform = glGetUniformLocation(lightProgram, "specularIntensity");
-        specularPowerUniform = glGetUniformLocation(lightProgram, "specularPower");
         attenuationUniform = glGetUniformLocation(lightProgram, "quadraticAttenuation");
 
         core::Mesh lightQuad = core::Mesh::generateQuad();
@@ -43,9 +37,6 @@ namespace object {
     LightObject::LightObject() {
         lightColor = glm::vec3(1,1,1);
         ambientIntensity = 0.2f;
-        specularColor = glm::vec3(1,1,1);
-        specularIntensity = 1.0f;
-        specularPower = 3.0f;
         quadraticAttenuation = 1.0f;
     }
     
@@ -57,9 +48,6 @@ namespace object {
         glUniform3f(cameraPosUniform, camera.transform.GetPosition().x, camera.transform.GetPosition().y, camera.transform.GetPosition().z);
         glUniform3f(lightColorUniform,  lightColor.x,  lightColor.y,  lightColor.z);
         glUniform1f(ambientIntensityUniform,  ambientIntensity);
-        glUniform3f(specularColorUniform,  specularColor.x,  specularColor.y,  specularColor.z);
-        glUniform1f(specularIntensityUniform,  specularIntensity);
-        glUniform1f(specularPowerUniform, specularPower);
         glUniform1f(attenuationUniform, quadraticAttenuation);
 
         glUseProgram(modelProgram);
@@ -72,34 +60,15 @@ namespace object {
     void LightObject::Gui() {
         ImGui::PushID(this);
         ImGui::SeparatorText(name.c_str());
-
-        ImGui::Text("BaseColors");
         if (ImGui::DragFloat3("Light Position", &objPos.x, 0.1f)) {
-
             transform.SetPosition(objPos);
         }
         ImGui::ColorEdit3("Light Color", &lightColor.x);
         ImGui::Text("Ambient");
         ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.001f, 1.0f);
-
-        ImGui::Text("Specular");
-        ImGui::ColorEdit3("specularColor", &specularColor.x);
-        ImGui::SliderFloat("Specular Intensity", &specularIntensity, 0.001f, 1.0f);
-        ImGui::SliderFloat("Specular Power", &specularPower, 0.001f, 150.0f);
-
         ImGui::Text("Attenuation");
         ImGui::SliderFloat("Attenuation", &quadraticAttenuation, 0.001f, 20.0f);
-
         ImGui::PopID();
-
     }
-
-    void LightObject::Delete() {
-
-    }
-
-    LightObject::~LightObject() {
-
-    }
-
+    LightObject::~LightObject() {}
 }

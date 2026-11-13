@@ -17,9 +17,6 @@ namespace object {
     public:
         glm::vec3 lightColor;
         float ambientIntensity;
-        glm::vec3 specularColor;
-        float specularIntensity;
-        float specularPower;
         float quadraticAttenuation;
 
         LightObject(const unsigned int& lightProgram,const unsigned int& modelProgram, const std::string& name);
@@ -28,7 +25,6 @@ namespace object {
 
         void Update(const glm::mat4& view,const glm::mat4& projection, Camera camera) override;
         void Gui() override;
-        void Delete() override;
 
     private:
         unsigned int modelProgram;
@@ -41,9 +37,6 @@ namespace object {
         GLint lightColorUniform;
         GLint cameraPosUniform;
         GLint ambientIntensityUniform;
-        GLint specularColorUniform;
-        GLint specularIntensityUniform;
-        GLint specularPowerUniform;
         GLint attenuationUniform;
     };
 }

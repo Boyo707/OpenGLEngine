@@ -14,6 +14,8 @@
 
 #include <unordered_map>
 
+#include "../Materials/wallMaterial.h"
+
 namespace scenes {
 
     class LightingScene : public Scene {
@@ -28,6 +30,10 @@ namespace scenes {
         std::vector<unsigned int> shaders;
         object::ModelObject object;
         object::ModelObject object2;
+        object::ModelObject object3;
         object::LightObject lightObject;
+
+        core::Model* quadModel;
+        material::WallMaterial* wallMaterial;
     };
 }

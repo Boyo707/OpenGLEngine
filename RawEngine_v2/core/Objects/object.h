@@ -12,7 +12,6 @@ namespace object {
     public:
         std::string name;
         core::Transform transform;
-        //core::Model* model;
         virtual void Update(const glm::mat4& view,const glm::mat4& projection, Camera camera);
         virtual void Gui();
         virtual void Delete();

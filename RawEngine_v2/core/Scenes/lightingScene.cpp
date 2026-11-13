@@ -13,23 +13,28 @@ namespace scenes {
 
     void LightingScene::Start() {
         Scene::Start();
+        core::Mesh quad = core::Mesh::generateQuad();
+        quadModel = new core::Model({quad});
+        wallMaterial = new material::WallMaterial("wallMat");
+
         lightObject = object::LightObject(shaders.at(0), shaders.at(1), "light1");
         object = object::ModelObject(shaders.at(0), "TestObject");
         object2 = object::ModelObject(shaders.at(0), "TestObject2");
+        object3 = object::ModelObject(shaders.at(0), "TestObject2", *quadModel, *wallMaterial);
 
         //CHANGE THE TRANSFORM FUNCTIONS TO JUST UPDATE.
         //Check every call if the variable has changed. -- DOne
 
-        //maybe make a parent class for the objects, this includes the update. and start etc, all the base object things, maybe a transform?
-        //will most likely still apply the same things as below with this idea.
-
         //Make a ImGui for the camera? - for FOV
         object.transform.SetPosition(glm::vec3(-2,0,0));
         object2.transform.SetPosition(glm::vec3(2,0,0));
+        object3.transform.SetPosition(glm::vec3(0,0,-5));
+        object3.transform.SetScale(glm::vec3(5, 5, 1));
 
         sceneObjects.push_back(&lightObject);
         sceneObjects.push_back(&object);
         sceneObjects.push_back(&object2);
+        sceneObjects.push_back(&object3);
     }
 
     void LightingScene::Update(float deltaTime) {
