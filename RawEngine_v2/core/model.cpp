@@ -2,6 +2,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace core {
+
+    Model::Model(int bleh) {
+
+    }
+
+
+
     void Model::render() {
         for (int i = 0; i < meshes.size(); ++i) {
             meshes[i].render();
@@ -22,5 +29,9 @@ namespace core {
 
     glm::mat4 Model::getModelMatrix() const {
         return this->modelMatrix;
+    }
+
+    void Model::setModelMatrix(glm::mat4 newModelMatrix) {
+        this->modelMatrix = newModelMatrix;
     }
 }

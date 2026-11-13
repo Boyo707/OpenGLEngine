@@ -10,13 +10,14 @@ namespace core {
         std::vector<core::Mesh> meshes;
         glm::mat4 modelMatrix;
     public:
+        Model(int bleh); // remove later
         Model(std::vector<core::Mesh> meshes) : meshes(meshes), modelMatrix(1) {}
-
         void render();
 
         void translate(glm::vec3 translation);
         void rotate(glm::vec3 axis, float radians);
         void scale(glm::vec3 scale);
         glm::mat4 getModelMatrix() const;
+        void setModelMatrix(glm::mat4 newModelMatrix);
     };
 }
