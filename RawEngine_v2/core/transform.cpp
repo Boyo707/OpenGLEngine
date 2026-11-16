@@ -91,4 +91,8 @@ namespace core {
     Transform::~Transform() {
 
     }
+    /*Transform* operator=(const Transform& other) {
+        this->forward = other.GetForward();
+        this->up = other.GetUp();
+    }*/
 }

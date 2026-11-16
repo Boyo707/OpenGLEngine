@@ -32,7 +32,7 @@ namespace core {
         void Update();
         Transform();
         ~Transform();
-
+        //Transform* operator;
     };
 }
 

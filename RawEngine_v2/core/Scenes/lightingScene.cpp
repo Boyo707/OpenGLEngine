@@ -9,6 +9,7 @@ namespace scenes {
     LightingScene::LightingScene(const std::vector<unsigned int>& pShaders, object::Camera& pCamera) {
         shaders = pShaders;
         sceneCamera = pCamera;
+        //this->viewportSize = viewPortsize;
     }
 
     void LightingScene::Start() {
