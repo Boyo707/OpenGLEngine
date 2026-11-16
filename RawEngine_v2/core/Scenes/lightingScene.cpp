@@ -47,6 +47,7 @@ namespace scenes {
 
     void LightingScene::Gui() {
         ImGui::Begin("Lighting Scene");
+        sceneCamera.Gui();
         for (int i = 0; i < sceneObjects.size(); ++i) {
             sceneObjects[i]->Gui();
         }

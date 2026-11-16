@@ -14,6 +14,8 @@ namespace object {
     }
 
     void Camera::UpdateCamera() {
+        camPos = transform.GetPosition();
+        camRot = transform.GetRotation();
         glm::vec3 finalMoveDir = *moveDir * *speed;
         transform.SetRotation(*rotateDir);
         transform.SetPosition((transform.GetPosition() + transform.GetRight() * finalMoveDir.x + transform.GetUp() * finalMoveDir.y + transform.GetForward() * finalMoveDir.z));
@@ -22,13 +24,22 @@ namespace object {
     float Camera::GetCameraFOV() const{
         return *fov;
     }
-
     glm::vec3 Camera::GetTargetPosition() const{
         return transform.GetPosition() + (transform.GetForward() * 2.0f);
     }
 
-    Camera::~Camera() {
+    Camera::~Camera() {}
 
+    void Camera::Gui() {
+        ImGui::PushID(this);
+        ImGui::SeparatorText("Scene Camera");
+        if (ImGui::DragFloat3("Position", &camPos.x, 0.1f)) {
+            transform.SetPosition(camPos);
+        }
+        if (ImGui::DragFloat3("Rotation", &camRot.x, 0.1f)) {
+            *rotateDir = camRot;
+        }
+        ImGui::DragFloat("Fov", fov, 0.1f);
+        ImGui::PopID();
     }
-
 }
