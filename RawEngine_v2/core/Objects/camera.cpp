@@ -36,6 +36,9 @@ namespace object {
         if (ImGui::DragFloat3("Position", &camPos.x, 0.1f)) {
             transform.SetPosition(camPos);
         }
+        if (ImGui::DragFloat3("Rotation", &camRot.x, 0.1f)) {
+            *rotateDir = camRot;
+        }
         ImGui::DragFloat("Fov", fov, 0.1f);
         ImGui::PopID();
     }

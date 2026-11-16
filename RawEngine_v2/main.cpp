@@ -91,8 +91,6 @@ void processInput(GLFWwindow *window) {
     }
     moveDir = inputDir;
 
-    glm::vec3 rotDir = glm::vec3(0, 0, 0);
-
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
     {
         isLookingAround = true;
@@ -104,21 +102,6 @@ void processInput(GLFWwindow *window) {
         isLookingAround = false;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-        rotDir -= right;
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        rotDir += right;
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        rotDir += up;
-    }
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        rotDir -= up;
-    }
-
-    rotateDir += rotDir;
-
     if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
         FOV += 1.0f;
     }
@@ -126,7 +109,6 @@ void processInput(GLFWwindow *window) {
         FOV -= 1.0f;
     }
     FOV = std::clamp(FOV, 1.0f, 150.0f);
-
 }
 
 float centerX;
@@ -134,7 +116,6 @@ float centerY;
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
     if (isLookingAround) {
-
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
 
