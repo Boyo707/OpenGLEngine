@@ -293,16 +293,25 @@ int main() {
         printf("Error! Making Shader Program: %s\n", infoLog);
     }
 
-    const unsigned int frameBufferProgram = glCreateProgram();
-    glAttachShader(frameBufferProgram, bufferVertexShader);
-    glAttachShader(frameBufferProgram, edgeDetectionShader);
-    glLinkProgram(frameBufferProgram);
-    glGetProgramiv(frameBufferProgram, GL_LINK_STATUS, &success);
+    const unsigned int edgeDetectionBufferProgram = glCreateProgram();
+    glAttachShader(edgeDetectionBufferProgram, bufferVertexShader);
+    glAttachShader(edgeDetectionBufferProgram, edgeDetectionShader);
+    glLinkProgram(edgeDetectionBufferProgram);
+    glGetProgramiv(edgeDetectionBufferProgram, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(frameBufferProgram, 512, NULL, infoLog);
+        glGetProgramInfoLog(edgeDetectionBufferProgram, 512, NULL, infoLog);
         printf("Error! Making Shader Program: %s\n", infoLog);
     }
 
+    const unsigned int colorCorrectionBufferProgram = glCreateProgram();
+    glAttachShader(colorCorrectionBufferProgram, bufferVertexShader);
+    glAttachShader(colorCorrectionBufferProgram, bufferFragmentShader);
+    glLinkProgram(colorCorrectionBufferProgram);
+    glGetProgramiv(colorCorrectionBufferProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(colorCorrectionBufferProgram, 512, NULL, infoLog);
+        printf("Error! Making Shader Program: %s\n", infoLog);
+    }
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -323,21 +332,38 @@ int main() {
     glClearColor(clearColor.r,
                  clearColor.g, clearColor.b, clearColor.a);
 
-    GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
-    GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
-    GLint bufferInvert = glGetUniformLocation(frameBufferProgram, "invert");
+    GLint bufferTextureUniform = glGetUniformLocation(edgeDetectionBufferProgram, "screenTexture");
+    GLint bufferColor = glGetUniformLocation(edgeDetectionBufferProgram, "color");
+    GLint bufferInvert = glGetUniformLocation(edgeDetectionBufferProgram, "invert");
 
-    unsigned int framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    GLint colorbufferTextureUniform = glGetUniformLocation(colorCorrectionBufferProgram, "screenTexture");
+    GLint colorbufferColor = glGetUniformLocation(colorCorrectionBufferProgram, "color");
+    GLint colorbufferInvert = glGetUniformLocation(colorCorrectionBufferProgram, "invert");
 
-    unsigned int bufferTexture;
-    glGenTextures(1, &bufferTexture);
-    glBindTexture(GL_TEXTURE_2D, bufferTexture);
+    unsigned int colorFrameBuffer;
+    glGenFramebuffers(1, &colorFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, colorFrameBuffer);
+
+    unsigned int colorTexture;
+    glGenTextures(1, &colorTexture);
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bufferTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+
+    unsigned int edgeFrameBuffer;
+    glGenFramebuffers(1, &edgeFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, edgeFrameBuffer);
+
+    unsigned int sceneBufferTexture;
+    glGenTextures(1, &sceneBufferTexture);
+    glBindTexture(GL_TEXTURE_2D, sceneBufferTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneBufferTexture, 0);
+
 
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
@@ -382,7 +408,7 @@ int main() {
         processInput(window);
 
         //First pass
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, edgeFrameBuffer);
         glViewport(0, 0, g_width, g_height);
         glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -392,17 +418,29 @@ int main() {
         lightScene.Update(deltaTime);
 
         //Second pass
+        glBindFramebuffer(GL_FRAMEBUFFER, colorFrameBuffer);
+        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(edgeDetectionBufferProgram);
+        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
+        glUniform1i(bufferInvert, canInvert);
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(bufferTextureUniform, 1);
+        glBindTexture(GL_TEXTURE_2D, sceneBufferTexture);
+        bufferQuad.render();
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
 
-        glUseProgram(frameBufferProgram);
-        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
-        glUniform1i(bufferInvert, canInvert);
+        glUseProgram(colorCorrectionBufferProgram);
+        glUniform4f(colorbufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
+        glUniform1i(colorbufferInvert, canInvert);
         glActiveTexture(GL_TEXTURE1);
-        glUniform1i(bufferTextureUniform, 1);
-        glBindTexture(GL_TEXTURE_2D, bufferTexture);
+        glUniform1i(colorbufferTextureUniform, 1);
+        glBindTexture(GL_TEXTURE_2D, colorTexture);
         bufferQuad.render();
 
         ImGui::Render();
@@ -417,9 +455,9 @@ int main() {
     }
 
     glDeleteProgram(modelShaderProgram);
-    glDeleteProgram(frameBufferProgram);
+    glDeleteProgram(edgeDetectionBufferProgram);
     glDeleteProgram(lightFragmentShader);
-    glDeleteFramebuffers(1, &bufferTexture);
+    glDeleteFramebuffers(1, &sceneBufferTexture);
     glDeleteRenderbuffers(1, &rbo);
 
     ImGui_ImplOpenGL3_Shutdown();

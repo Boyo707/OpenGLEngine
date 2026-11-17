@@ -6,8 +6,6 @@ in vec3 fNor;
 in vec2 uv;
 
 uniform sampler2D screenTexture;
-uniform vec4 color;
-uniform bool invert;
 
 void main()
 {
@@ -20,7 +18,7 @@ void main()
 
     float kernel[9] = float[](
         1.0, 1.0, 1.0,
-        1.0, -12.0, 1.0,
+        1.0, -8.0, 1.0,
         1.0, 1.0, 1.0
     );
     vec4 sampleTex[9];
@@ -31,5 +29,5 @@ void main()
     }
 
     colorResult.a = 1.0;
-    FragColor = texture(screenTexture, uv) + colorResult;
+    FragColor = texture(screenTexture, uv) + clamp(colorResult, 0, 1);
 }

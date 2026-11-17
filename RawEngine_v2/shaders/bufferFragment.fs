@@ -17,5 +17,4 @@ void main()
    }
    colorResult += color;
    FragColor = colorResult;
-
 }
