@@ -19,6 +19,7 @@ namespace scenes {
         std::vector<object::Object*> sceneObjects;
         glm::mat4 viewMatrix;
         glm::mat4 projectionMatrix;
+        glm::vec2 viewportSize;
         bool hasStarted = false;
 
         virtual void Start();

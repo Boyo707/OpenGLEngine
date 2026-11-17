@@ -67,23 +67,25 @@ namespace core {
         };
         const std::vector<GLuint> indices = {0, 1, 2, 3, 4, 5};
 
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 const up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 const tangent = glm::normalize(glm::cross(up, normals[0]));
         const glm::vec3 tangents[] = {
-            glm::normalize(glm::cross(up, normals[0])),
-            glm::normalize(glm::cross(up, normals[1])),
-            glm::normalize(glm::cross(up, normals[2])),
-            glm::normalize(glm::cross(up, normals[3])),
-            glm::normalize(glm::cross(up, normals[4])),
-            glm::normalize(glm::cross(up, normals[5])),
+            tangent,
+            tangent,
+            tangent,
+            tangent,
+            tangent,
+            tangent,
         };
 
+        glm::vec3 biTangent = glm::normalize(glm::cross(normals[0], tangents[0]));
         glm::vec3 bitangents[] = {
-            glm::normalize(glm::cross(normals[0], tangents[0])),
-            glm::normalize(glm::cross(normals[1], tangents[1])),
-            glm::normalize(glm::cross(normals[2], tangents[2])),
-            glm::normalize(glm::cross(normals[3], tangents[3])),
-            glm::normalize(glm::cross(normals[4], tangents[4])),
-            glm::normalize(glm::cross(normals[5], tangents[5])),
+            biTangent,
+            biTangent,
+            biTangent,
+            biTangent,
+            biTangent,
+            biTangent,
         };
 
         for (int i = 0; i < bitangents->length(); ++i) {

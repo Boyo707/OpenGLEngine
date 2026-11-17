@@ -238,6 +238,7 @@ int main() {
     const GLuint lightFragmentShader = generateShader("shaders/lightingFragment.fs", GL_FRAGMENT_SHADER);
 
     const GLuint bufferVertexShader = generateShader("shaders/bufferVertex.vs", GL_VERTEX_SHADER);
+    const GLuint edgeDetectionShader = generateShader("shaders/edgeDetection.fs", GL_FRAGMENT_SHADER);
     const GLuint bufferFragmentShader = generateShader("shaders/bufferFragment.fs", GL_FRAGMENT_SHADER);
 
     int success;
@@ -273,16 +274,25 @@ int main() {
         printf("Error! Making Shader Program: %s\n", infoLog);
     }
 
-    const unsigned int frameBufferProgram = glCreateProgram();
-    glAttachShader(frameBufferProgram, bufferVertexShader);
-    glAttachShader(frameBufferProgram, bufferFragmentShader);
-    glLinkProgram(frameBufferProgram);
-    glGetProgramiv(frameBufferProgram, GL_LINK_STATUS, &success);
+    const unsigned int edgeDetectionBufferProgram = glCreateProgram();
+    glAttachShader(edgeDetectionBufferProgram, bufferVertexShader);
+    glAttachShader(edgeDetectionBufferProgram, edgeDetectionShader);
+    glLinkProgram(edgeDetectionBufferProgram);
+    glGetProgramiv(edgeDetectionBufferProgram, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(frameBufferProgram, 512, NULL, infoLog);
+        glGetProgramInfoLog(edgeDetectionBufferProgram, 512, NULL, infoLog);
         printf("Error! Making Shader Program: %s\n", infoLog);
     }
 
+    const unsigned int colorCorrectionBufferProgram = glCreateProgram();
+    glAttachShader(colorCorrectionBufferProgram, bufferVertexShader);
+    glAttachShader(colorCorrectionBufferProgram, bufferFragmentShader);
+    glLinkProgram(colorCorrectionBufferProgram);
+    glGetProgramiv(colorCorrectionBufferProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(colorCorrectionBufferProgram, 512, NULL, infoLog);
+        printf("Error! Making Shader Program: %s\n", infoLog);
+    }
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -294,65 +304,47 @@ int main() {
 
     glDeleteShader(bufferFragmentShader);
     glDeleteShader(bufferVertexShader);
+    glDeleteShader(edgeDetectionShader);
 
     core::Mesh quad = core::Mesh::generateQuad();
-    core::Model quadModel({quad});
-
-    quadModel.translate(glm::vec3(0,0,-5));
-    quadModel.scale(glm::vec3(5, 5, 1));
-
-    core::Texture cmgtGatoTexture("textures/CMGaTo_crop.png");
-    core::Texture stoneTexture("textures/StoneAlbedo.png");
-    core::Texture stoneNormalMap("textures/StoneNormal.png");
+    core::Model bufferQuad({quad});
 
     glm::vec4 clearColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
     glClearColor(clearColor.r,
                  clearColor.g, clearColor.b, clearColor.a);
 
-    float bufferQuadVertices[] = {
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
+    GLint bufferTextureUniform = glGetUniformLocation(edgeDetectionBufferProgram, "screenTexture");
+    GLint bufferColor = glGetUniformLocation(edgeDetectionBufferProgram, "color");
+    GLint bufferInvert = glGetUniformLocation(edgeDetectionBufferProgram, "invert");
 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
+    GLint colorbufferTextureUniform = glGetUniformLocation(colorCorrectionBufferProgram, "screenTexture");
+    GLint colorbufferColor = glGetUniformLocation(colorCorrectionBufferProgram, "color");
+    GLint colorbufferInvert = glGetUniformLocation(colorCorrectionBufferProgram, "invert");
 
-    unsigned int bufferQuadVAO, bufferQuadVBO;
-    glGenVertexArrays(1, &bufferQuadVAO);
-    glGenBuffers(1, &bufferQuadVBO);
-    glBindVertexArray(bufferQuadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, bufferQuadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(bufferQuadVertices), &bufferQuadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    unsigned int colorFrameBuffer;
+    glGenFramebuffers(1, &colorFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, colorFrameBuffer);
 
-    glm::mat4 view;
-    glm::mat4 projection;
-
-    GLint textureModelMatrixUniform = glGetUniformLocation(textureShaderProgram, "modelMatrix");
-    GLint textureModelUniform = glGetUniformLocation(textureShaderProgram, "mvpMatrix");
-    GLint textureUniform = glGetUniformLocation(textureShaderProgram, "text");
-    GLint normalUniform = glGetUniformLocation(textureShaderProgram, "text");
-
-    GLint bufferTextureUniform = glGetUniformLocation(frameBufferProgram, "screenTexture");
-    GLint bufferColor = glGetUniformLocation(frameBufferProgram, "color");
-    GLint bufferInvert = glGetUniformLocation(frameBufferProgram, "invert");
-
-    unsigned int framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-    unsigned int bufferTexture;
-    glGenTextures(1, &bufferTexture);
-    glBindTexture(GL_TEXTURE_2D, bufferTexture);
+    unsigned int colorTexture;
+    glGenTextures(1, &colorTexture);
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bufferTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+
+    unsigned int edgeFrameBuffer;
+    glGenFramebuffers(1, &edgeFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, edgeFrameBuffer);
+
+    unsigned int sceneBufferTexture;
+    glGenTextures(1, &sceneBufferTexture);
+    glBindTexture(GL_TEXTURE_2D, sceneBufferTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneBufferTexture, 0);
+
 
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
@@ -386,6 +378,8 @@ int main() {
 
         ImGui::NewFrame();
         lightScene.Gui();
+
+        //Eventually add more variables to change, or make a script that handles it all for me.
         ImGui::Begin("Post Processing Settings");
         ImGui::SliderFloat3("colors", &colors.x, 0.0f, 1.0f);
         ImGui::Checkbox("InvertColors", &canInvert);
@@ -394,57 +388,44 @@ int main() {
 
         processInput(window);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        //First pass
+        glBindFramebuffer(GL_FRAMEBUFFER, edgeFrameBuffer);
+        glViewport(0, 0, g_width, g_height);
+        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
 
-
+        //scene update - Eventually turn this into a list that i can cycle through instead. - Maybe add a starting camera pos & rot
         lightScene.Update(deltaTime);
 
-        view = glm::lookAt(lightScene.sceneCamera.transform.GetPosition(), lightScene.sceneCamera.GetTargetPosition(), lightScene.sceneCamera.transform.GetUp());
-        projection = glm::perspective(glm::radians(lightScene.sceneCamera.GetCameraFOV()), static_cast<float>(g_width) / static_cast<float>(g_height), 0.1f, 100.0f);
+        //Second pass
+        glBindFramebuffer(GL_FRAMEBUFFER, colorFrameBuffer);
+        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //CatTextureQuad----------------------------------------------------------------
-        /*glUseProgram(textureShaderProgram);
-        glUniformMatrix4fv(textureModelUniform, 1, GL_FALSE, glm::value_ptr(projection * view * quadModel.getModelMatrix()));
-        glUniformMatrix4fv(textureModelMatrixUniform, 1, GL_FALSE, glm::value_ptr(quadModel.getModelMatrix()));
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(textureUniform, 0);
-        glBindTexture(GL_TEXTURE_2D, stoneTexture.getId());
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(normalUniform, 0);
-        glBindTexture(GL_TEXTURE_2D, stoneNormalMap.getId());
-
-        quadModel.render();
-        glBindVertexArray(0);*/
-
-        //FrameBuffer----------------------------------------------------------------
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        //Maybe try and turn this into a better looking program (make use of the uniform location of texture)
-        glUseProgram(frameBufferProgram);
+        glUseProgram(edgeDetectionBufferProgram);
         glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
         glUniform1i(bufferInvert, canInvert);
-        glBindVertexArray(bufferQuadVAO); //Can't use the quad mesh provided since it doesnt give texcoords in the attribute pointer
         glActiveTexture(GL_TEXTURE1);
         glUniform1i(bufferTextureUniform, 1);
-        glBindTexture(GL_TEXTURE_2D, bufferTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindTexture(GL_TEXTURE_2D, sceneBufferTexture);
+        bufferQuad.render();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(colorCorrectionBufferProgram);
+        glUniform4f(colorbufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
+        glUniform1i(colorbufferInvert, canInvert);
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(colorbufferTextureUniform, 1);
+        glBindTexture(GL_TEXTURE_2D, colorTexture);
+        bufferQuad.render();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        /*glUseProgram(frameBufferProgram);
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(bufferTextureUniform, 0);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-        bufferQuad.render();
-        glBindVertexArray(0);
-        glActiveTexture(GL_TEXTURE0);*/
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -455,12 +436,10 @@ int main() {
     }
 
     glDeleteProgram(modelShaderProgram);
-    glDeleteProgram(frameBufferProgram);
+    glDeleteProgram(edgeDetectionBufferProgram);
     glDeleteProgram(lightFragmentShader);
-    glDeleteFramebuffers(1, &bufferTexture);
+    glDeleteFramebuffers(1, &sceneBufferTexture);
     glDeleteRenderbuffers(1, &rbo);
-    glDeleteVertexArrays(1, &bufferQuadVAO);
-    glDeleteBuffers(1, &bufferQuadVBO);
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
