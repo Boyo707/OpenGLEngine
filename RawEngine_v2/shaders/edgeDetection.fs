@@ -6,7 +6,7 @@ in vec3 fNor;
 in vec2 uv;
 
 uniform sampler2D screenTexture;
-
+uniform float edgeIntensity;
 void main()
 {
     float offset = 0.001;
@@ -18,7 +18,7 @@ void main()
 
     float kernel[9] = float[](
         1.0, 1.0, 1.0,
-        1.0, -8.0, 1.0,
+        1.0, -edgeIntensity, 1.0,
         1.0, 1.0, 1.0
     );
     vec4 sampleTex[9];
