@@ -9,7 +9,6 @@ namespace scenes {
     LightingScene::LightingScene(const std::vector<unsigned int>& pShaders, object::Camera& pCamera) {
         shaders = pShaders;
         sceneCamera = pCamera;
-        //this->viewportSize = viewPortsize;
     }
 
     void LightingScene::Start() {
@@ -23,10 +22,6 @@ namespace scenes {
         object2 = object::ModelObject(shaders.at(0), "TestObject2");
         object3 = object::ModelObject(shaders.at(0), "TestObject2", *quadModel, *wallMaterial);
 
-        //CHANGE THE TRANSFORM FUNCTIONS TO JUST UPDATE.
-        //Check every call if the variable has changed. -- DOne
-
-        //Make a ImGui for the camera? - for FOV
         object.transform.SetPosition(glm::vec3(-2,0,0));
         object2.transform.SetPosition(glm::vec3(2,0,0));
         object3.transform.SetPosition(glm::vec3(0,0,-5));

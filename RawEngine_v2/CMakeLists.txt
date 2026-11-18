@@ -35,6 +35,14 @@ set(IMGUI_SOURCES
         core/Materials/material.h
         core/Materials/wallMaterial.cpp
         core/Materials/wallMaterial.h
+        core/PostProcessing/PostProcessItem.cpp
+        core/PostProcessing/PostProcessItem.h
+        core/PostProcessing/PostProcessHandler.cpp
+        core/PostProcessing/PostProcessHandler.h
+        core/PostProcessing/ColorCorrectionBuffer.cpp
+        core/PostProcessing/ColorCorrectionBuffer.h
+        core/PostProcessing/EdgeDetectionBuffer.cpp
+        core/PostProcessing/EdgeDetectionBuffer.h
 )
 
 add_executable(RawEngine main.cpp

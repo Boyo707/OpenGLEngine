@@ -15,6 +15,7 @@
 #include "core/texture.h"
 #include "core/Objects/camera.h"
 #include "core/Objects/lightObject.h"
+#include "core/PostProcessing/PostProcessHandler.h"
 #include "core/Scenes/lightingScene.h"
 //#define MAC_CLION
 #define VSTUDIO
@@ -306,63 +307,9 @@ int main() {
     glDeleteShader(bufferVertexShader);
     glDeleteShader(edgeDetectionShader);
 
-    core::Mesh quad = core::Mesh::generateQuad();
-    core::Model bufferQuad({quad});
-
-    glm::vec4 clearColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
-    glClearColor(clearColor.r,
-                 clearColor.g, clearColor.b, clearColor.a);
-
-    GLint bufferTextureUniform = glGetUniformLocation(edgeDetectionBufferProgram, "screenTexture");
-    GLint bufferColor = glGetUniformLocation(edgeDetectionBufferProgram, "color");
-    GLint bufferInvert = glGetUniformLocation(edgeDetectionBufferProgram, "invert");
-
-    GLint colorbufferTextureUniform = glGetUniformLocation(colorCorrectionBufferProgram, "screenTexture");
-    GLint colorbufferColor = glGetUniformLocation(colorCorrectionBufferProgram, "color");
-    GLint colorbufferInvert = glGetUniformLocation(colorCorrectionBufferProgram, "invert");
-
-    unsigned int colorFrameBuffer;
-    glGenFramebuffers(1, &colorFrameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, colorFrameBuffer);
-
-    unsigned int colorTexture;
-    glGenTextures(1, &colorTexture);
-    glBindTexture(GL_TEXTURE_2D, colorTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
-
-    unsigned int edgeFrameBuffer;
-    glGenFramebuffers(1, &edgeFrameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, edgeFrameBuffer);
-
-    unsigned int sceneBufferTexture;
-    glGenTextures(1, &sceneBufferTexture);
-    glBindTexture(GL_TEXTURE_2D, sceneBufferTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_width, g_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneBufferTexture, 0);
-
-
-    unsigned int rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_width, g_height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        printf("uh oh");
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     double currentTime = glfwGetTime();
     double finishFrameTime = 0.0;
     float deltaTime = 0.0f;
-
-    //PostProcessing values
-    glm::vec3 colors = glm::vec3(0.0f,0.0f,0.0f);
-    bool canInvert = false;
 
     std::vector<unsigned int> shaderList;
     shaderList.push_back(lightModelShaderProgram);
@@ -372,57 +319,25 @@ int main() {
     object::Camera camera = object::Camera(moveDir, rotateDir, cameraSpeed, FOV);
     scenes::LightingScene lightScene = scenes::LightingScene(shaderList, camera);
 
+    std::vector<unsigned int> ppPrograms;
+    ppPrograms.push_back(colorCorrectionBufferProgram);
+    ppPrograms.push_back(edgeDetectionBufferProgram);
+
+    PostProcessing::PostProcessHandler ppHandler = PostProcessing::PostProcessHandler(ppPrograms, g_width, g_height);
+
     while (!glfwWindowShouldClose(window)) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
 
         ImGui::NewFrame();
         lightScene.Gui();
-
-        //Eventually add more variables to change, or make a script that handles it all for me.
-        ImGui::Begin("Post Processing Settings");
-        ImGui::SliderFloat3("colors", &colors.x, 0.0f, 1.0f);
-        ImGui::Checkbox("InvertColors", &canInvert);
-        ImGui::Text("Hello :)");
-        ImGui::End();
+        ppHandler.Gui();
 
         processInput(window);
 
-        //First pass
-        glBindFramebuffer(GL_FRAMEBUFFER, edgeFrameBuffer);
-        glViewport(0, 0, g_width, g_height);
-        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-
-        //scene update - Eventually turn this into a list that i can cycle through instead. - Maybe add a starting camera pos & rot
+        ppHandler.FirstInitialization();
         lightScene.Update(deltaTime);
-
-        //Second pass
-        glBindFramebuffer(GL_FRAMEBUFFER, colorFrameBuffer);
-        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(edgeDetectionBufferProgram);
-        glUniform4f(bufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
-        glUniform1i(bufferInvert, canInvert);
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(bufferTextureUniform, 1);
-        glBindTexture(GL_TEXTURE_2D, sceneBufferTexture);
-        bufferQuad.render();
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glDisable(GL_DEPTH_TEST);
-
-        glUseProgram(colorCorrectionBufferProgram);
-        glUniform4f(colorbufferColor, colors.x, colors.y, colors.z, 0.01f); // this could be a texture later.
-        glUniform1i(colorbufferInvert, canInvert);
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(colorbufferTextureUniform, 1);
-        glBindTexture(GL_TEXTURE_2D, colorTexture);
-        bufferQuad.render();
+        ppHandler.ProcessItems();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -437,9 +352,8 @@ int main() {
 
     glDeleteProgram(modelShaderProgram);
     glDeleteProgram(edgeDetectionBufferProgram);
+    glDeleteProgram(colorCorrectionBufferProgram);
     glDeleteProgram(lightFragmentShader);
-    glDeleteFramebuffers(1, &sceneBufferTexture);
-    glDeleteRenderbuffers(1, &rbo);
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
